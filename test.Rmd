@@ -2,9 +2,10 @@
 title: "Final Project"
 author: "Justin Wininger, Otis Murray, Henry Katz"
 date: "2023-11-29"
-output: 
-  html_document: 
+output:
+  html_document:
     fig_width: 10
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -12,7 +13,7 @@ output:
 #load necessary packages
 knitr::opts_chunk$set(echo = FALSE, dpi=300)
 library("groundhog")
-pkgs <- c('Stat2Data', 'tidyverse', 'mosaic', 'ggformula', 'Lock5Data', 'tinytex', 'car', 'leaps', 'HH', 'rvest', 'dplyr', 'readr', 'ggplot2', 'tidyr', 'readxl', 'esquisse', 'kableExtra', 'ggformula')
+pkgs <- c('tidyverse', 'rvest', 'ggformula', 'kableExtra', 'mosaic', 'ggrepel', 'car', 'tinytex')
 groundhog.library(pkgs, '2023-11-29')
 ```
 
