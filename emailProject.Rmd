@@ -1,0 +1,23 @@
+---
+title: "Email Report"
+author: "Justin Wininger"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+remove(list = ls())
+library(readxl)
+library(tidyverse)
+library(lubridate)
+emails <- read_excel("PGI master.xlsx")
+emails$Day <- as.Date(emails$`Sent Date`)
+emails$Day <- weekdays(emails$Day)
+```
+
+```{r}
+ggplot(data=emails, mapping=aes(x=Day, y=`Open Rate`))+
+  geom_boxplot()
+```
+

@@ -13,7 +13,8 @@ output:
 #load necessary packages
 knitr::opts_chunk$set(echo = FALSE, dpi=300)
 library("groundhog")
-pkgs <- c('tidyverse', 'rvest', 'ggformula', 'kableExtra', 'mosaic', 'ggrepel', 'car', 'tinytex')
+library(kableExtra)
+pkgs <- c('tidyverse', 'rvest', 'ggformula', 'mosaic', 'ggrepel', 'car', 'tinytex')
 groundhog.library(pkgs, '2023-11-29')
 ```
 
