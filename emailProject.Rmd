@@ -12,12 +12,37 @@ library(readxl)
 library(tidyverse)
 library(lubridate)
 emails <- read_excel("PGI master.xlsx")
+```
+
+```{r, data}
 emails$Day <- as.Date(emails$`Sent Date`)
 emails$Day <- weekdays(emails$Day)
+day_order <- c("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday")
+emails$Day <- factor(emails$Day, levels = day_order, ordered = TRUE)
+
+emails <- emails %>% filter(`Total Recipients` > 20 & Opens > 10)
+```
+
+
+```{r}
+emailsMF <- emails %>% filter(Day != 'Sunday')
+emailsS <- emails %>% filter(Day == 'Sunday')
+
+counts <- emailsMF %>% 
+  group_by(Day) %>%
+  tally()
+
+ggplot(data=emailsMF, mapping=aes(x=Day, y=`Open Rate`))+
+  geom_boxplot()+
+  geom_text(data = counts,
+            aes(Day, Inf, label = n), vjust = 1)
 ```
 
 ```{r}
-ggplot(data=emails, mapping=aes(x=Day, y=`Open Rate`))+
-  geom_boxplot()
+emails <- emails %>% mutate(`Subject Length` = nchar(Subject))
+
+ggplot(data=emails, mapping=aes(x=`Subject Length`, y=`Open Rate`))+
+  geom_point()+
+  geom_smooth(method = lm, se=FALSE)
 ```
 
