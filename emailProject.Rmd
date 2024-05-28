@@ -2,15 +2,17 @@
 title: "Email Report"
 author: "Justin Wininger"
 date: "`r Sys.Date()`"
-output: html_document
+output: word_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE)
 remove(list = ls())
 library(readxl)
 library(tidyverse)
 library(lubridate)
+library(hrbrthemes)
+library(viridis)
 emails <- read_excel("PGI master.xlsx")
 ```
 
@@ -24,17 +26,38 @@ emails <- emails %>% filter(`Total Recipients` > 20 & Opens > 10)
 ```
 
 
-```{r}
+```{r, warning = FALSE, message = FALSE}
 emailsMF <- emails %>% filter(Day != 'Sunday')
 emailsS <- emails %>% filter(Day == 'Sunday')
+emailsW <- emails %>% filter(Day == 'Wednesday')
 
-counts <- emailsMF %>% 
+
+countsMF <- emailsMF %>% 
+  group_by(Day) %>%
+  tally()
+
+counts <- emails %>% 
   group_by(Day) %>%
   tally()
 
 ggplot(data=emailsMF, mapping=aes(x=Day, y=`Open Rate`))+
   geom_boxplot()+
-  geom_text(data = counts,
+  geom_text(data = countsMF,
+            aes(Day, Inf, label = n), vjust = 1)
+
+
+# Plot
+emailsMF %>%
+  ggplot( aes(x=Day, y=`Open Rate`, fill=Day)) +
+    geom_violin(width=1.0) +
+    geom_boxplot(width=0.1, color="grey", alpha=0.2) +
+    scale_fill_viridis(discrete = TRUE) +
+    theme_ipsum() +
+    theme(
+      legend.position="none",
+      plot.title = element_text(size=11)
+    )+
+  geom_text(data = countsMF,
             aes(Day, Inf, label = n), vjust = 1)
 ```
 
@@ -43,6 +66,10 @@ emails <- emails %>% mutate(`Subject Length` = nchar(Subject))
 
 ggplot(data=emails, mapping=aes(x=`Subject Length`, y=`Open Rate`))+
   geom_point()+
-  geom_smooth(method = lm, se=FALSE)
+  geom_smooth(method=lm,se=FALSE)
+
+SL <- lm(`Open Rate` ~ `Subject Length`, data = emails)
+
+summary(SL)
 ```
 
