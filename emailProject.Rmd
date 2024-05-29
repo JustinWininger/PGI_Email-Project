@@ -6,14 +6,16 @@ output: word_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(echo = FALSE, dpi = 300)
 remove(list = ls())
 library(readxl)
 library(tidyverse)
 library(lubridate)
 library(hrbrthemes)
 library(viridis)
+library(mosaic)
 emails <- read_excel("PGI master.xlsx")
+
 ```
 
 ```{r, data}
@@ -22,15 +24,17 @@ emails$Day <- weekdays(emails$Day)
 day_order <- c("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday")
 emails$Day <- factor(emails$Day, levels = day_order, ordered = TRUE)
 
+
 emails <- emails %>% filter(`Total Recipients` > 20 & Opens > 10)
-```
 
+emails$Covid <- ifelse(emails$`Sent Date` < as.Date("2020-03-01"), "Pre-Covid", "Post-Covid")
 
-```{r, warning = FALSE, message = FALSE}
+covid_order <- c("Pre-Covid", "Post-Covid")
+emails$Covid <- factor(emails$Covid, levels = covid_order, ordered = TRUE)
+
 emailsMF <- emails %>% filter(Day != 'Sunday')
 emailsS <- emails %>% filter(Day == 'Sunday')
 emailsW <- emails %>% filter(Day == 'Wednesday')
-
 
 countsMF <- emailsMF %>% 
   group_by(Day) %>%
@@ -40,9 +44,17 @@ counts <- emails %>%
   group_by(Day) %>%
   tally()
 
-ggplot(data=emailsMF, mapping=aes(x=Day, y=`Open Rate`))+
+
+```
+
+# Introduction
+
+This project analyzes several statistics of 640 email campaigns sent out by clients of Endowment Development Services since 2010. 
+
+```{r, warning = FALSE, message = FALSE}
+ggplot(data=emails, mapping=aes(x=Day, y=`Open Rate`))+
   geom_boxplot()+
-  geom_text(data = countsMF,
+  geom_text(data = counts,
             aes(Day, Inf, label = n), vjust = 1)
 
 
@@ -59,17 +71,327 @@ emailsMF %>%
     )+
   geom_text(data = countsMF,
             aes(Day, Inf, label = n), vjust = 1)
+
+emailsBC <- subset(emailsMF, Covid == "Pre-covid")
+emailsAC <- subset(emailsMF, Covid == "Post-covid")
+
+countsMF2 <- emailsMF %>% 
+  group_by(Day, Covid) %>%
+  tally()
+
+emailsMF %>%
+  ggplot(aes(Day, `Open Rate`))+
+  geom_boxplot()+
+  facet_wrap( ~ Covid)+
+  geom_text(data = countsMF2,
+            aes(Day, Inf, label = n), vjust = 1)
 ```
 
 ```{r}
-emails <- emails %>% mutate(`Subject Length` = nchar(Subject))
+emailsMF <- emailsMF %>% mutate(`Subject Length` = nchar(Subject))
 
-ggplot(data=emails, mapping=aes(x=`Subject Length`, y=`Open Rate`))+
+ggplot(data=emailsMF, mapping=aes(x=`Subject Length`, y=`Open Rate`))+
   geom_point()+
   geom_smooth(method=lm,se=FALSE)
 
-SL <- lm(`Open Rate` ~ `Subject Length`, data = emails)
+SL <- lm(`Open Rate` ~ `Subject Length`, data = emailsMF)
 
 summary(SL)
+```
+
+```{r}
+has_punctuation <- function(text) {
+  grepl("[[:punct:]]", text)
+}
+
+# Add a new column 'contains_punctuation' based on the presence of punctuation
+emails <- emails %>%
+  mutate(Punctuation = ifelse(has_punctuation(Subject), "Yes", "No"))
+
+counts2 <- emails %>% 
+  group_by(Punctuation) %>%
+  tally()
+
+emails %>%
+  ggplot(aes(Punctuation, `Open Rate`))+
+  geom_boxplot()+
+  geom_text(data = counts2,
+            aes(Punctuation, Inf, label = n), vjust = 1)
+
+puncM <- lm(`Open Rate` ~ Punctuation, data=emails)
+anova(puncM)
+```
+```{r}
+# Function to check for specific punctuation marks
+has_period <- function(text) {
+  grepl("\\.", text)
+}
+
+has_colon <- function(text) {
+  grepl(":", text)
+}
+
+has_exclamation <- function(text) {
+  grepl("!", text)
+}
+
+has_question <- function(text) {
+  grepl("\\?", text)
+}
+
+# Add new columns for specific punctuation marks
+emails <- emails %>%
+  mutate(
+    Period = ifelse(has_period(Subject), "Yes", "No"),
+    Colon = ifelse(has_colon(Subject), "Yes", "No"),
+    ExclamationPoint = ifelse(has_exclamation(Subject), "Yes", "No"),
+    QuestionMark = ifelse(has_question(Subject), "Yes", "No")
+  )
+```
+
+```{r}
+haveP <- emails %>% 
+  filter(Period == "Yes") %>%
+  mutate(Punc = "Period")
+haveC <- emails %>% 
+  filter(Colon == "Yes") %>%
+  mutate(Punc = "Colon")
+haveE <- emails %>% 
+  filter(ExclamationPoint == "Yes")%>%
+  mutate(Punc = "Exclamation Point")
+haveQ <- emails %>% 
+  filter(QuestionMark == "Yes")%>%
+  mutate(Punc = "Question Mark")
+
+havePC <- rbind(haveP, haveC)
+haveEQ <- rbind(haveE, haveQ)
+
+havePCEQ <- rbind(havePC, haveEQ)
+
+counts7 <- havePCEQ %>% 
+  group_by(Punc) %>%
+  tally()
+
+havePCEQ %>%
+  ggplot(aes(Punc, `Open Rate`))+
+  geom_boxplot()+
+  geom_text(data = counts7,
+            aes(Punc, Inf, label = n), vjust = 1)
+```
+
+```{r}
+# Function to count specific punctuation marks
+count_periods <- function(text) {
+  str_count(text, "\\.")
+}
+
+count_colons <- function(text) {
+  str_count(text, ":")
+}
+
+count_exclamations <- function(text) {
+  str_count(text, "!")
+}
+
+count_questions <- function(text) {
+  str_count(text, "\\?")
+}
+
+# Add new columns for the counts of specific punctuation marks
+emails <- emails %>%
+  mutate(
+    period_count = count_periods(Subject),
+    colon_count = count_colons(Subject),
+    exclamation_count = count_exclamations(Subject),
+    question_count = count_questions(Subject)
+  )
+set.seed(123)
+get_most_frequent <- function(period, colon, exclamation, question) {
+  counts <- c(Period = period, Colon = colon, `Exclamation Point` = exclamation, `Question Mark` = question)
+  max_count <- max(counts)
+  if (max_count == 0) {
+    return("No Punctuation")
+  } else {
+    most_frequent <- names(which(counts == max_count))
+    return(sample(most_frequent, 1))  # Pick one at random in case of a tie
+  }
+}
+
+# Add the 'mostFrequent' column
+emails <- emails %>%
+  rowwise() %>%
+  mutate(mostFrequent = get_most_frequent(period_count, colon_count, exclamation_count, question_count)) %>%
+  ungroup()
+
+counts3 <- emails %>% 
+  group_by(mostFrequent) %>%
+  tally()
+
+emails %>%
+  ggplot(aes(mostFrequent, `Open Rate`))+
+  geom_boxplot()+
+  geom_text(data = counts3,
+            aes(mostFrequent, Inf, label = n), vjust = 1)
+```
+
+```{r}
+get_punctuation_type <- function(period, colon, exclamation, question) {
+  punctuation_counts <- c(period, colon, exclamation, question)
+  types_present <- sum(punctuation_counts > 0)
+  if (types_present == 0) {
+    return("None")
+  } else if (types_present == 1) {
+    if (period > 0) {
+      return("Period")
+    } else if (colon > 0) {
+      return("Colon")
+    } else if (exclamation > 0) {
+      return("Exclamation")
+    } else if (question > 0) {
+      return("Question")
+    }
+  } else {
+    return("Mixed")
+  }
+}
+
+# Add the 'punctuation2' column
+emails <- emails %>%
+  rowwise() %>%
+  mutate(Punctuation2 = get_punctuation_type(period_count, colon_count, exclamation_count, question_count)) %>%
+  ungroup()
+
+emailsSame <- emails %>% 
+  filter(Punctuation2 != 'Mixed') %>%
+  filter(Punctuation2 != 'Exclamation') %>%
+  filter(Punctuation2 != 'Question')
+
+counts4 <- emailsSame %>% 
+  group_by(Punctuation2) %>%
+  tally()
+
+emailsSame %>%
+  ggplot(aes(Punctuation2, `Open Rate`))+
+  geom_boxplot()+
+  geom_text(data = counts4,
+            aes(Punctuation2, Inf, label = n), vjust = 1)
+```
+
+```{r}
+# Function to determine the last punctuation type
+get_last_punctuation <- function(text) {
+  # Match the last punctuation mark in the text
+  last_punc <- str_match(text, ".*([\\.,:;!?])[^\\.,:;!?]*$")
+  
+  if (is.na(last_punc[2])) {
+    return("None")
+  } else {
+    if (last_punc[2] == ".") {
+      return("Period")
+    } else if (last_punc[2] == ":") {
+      return("Colon")
+    } else if (last_punc[2] == "!") {
+      return("Exclamation")
+    } else if (last_punc[2] == "?") {
+      return("Question")
+    } else {
+      return("None")
+    }
+  }
+}
+
+# Add the 'lastPunc' column
+emails <- emails %>%
+  rowwise() %>%
+  mutate(lastPunc = get_last_punctuation(Subject)) %>%
+  ungroup()
+
+counts5 <- emails %>% 
+  group_by(lastPunc) %>%
+  tally()
+
+emails %>%
+  ggplot(aes(lastPunc, `Open Rate`))+
+  geom_boxplot()+
+  geom_text(data = counts5,
+            aes(lastPunc, Inf, label = n), vjust = 1)
+```
+```{r}
+analyze_last_char <- function(text) {
+  last_char <- substr(text, nchar(text), nchar(text))
+  if (last_char == ".") {
+    return("Period")
+  } else if (last_char == "!") {
+    return("Exclamation")
+  } else if (last_char == "?") {
+    return("Question")
+  } else if (last_char == ":") {
+    return("Colon")
+  } else {
+    return("No Punctuation")
+  }
+}
+
+# Create new column with analysis of last character
+emails$lastChar <- sapply(emails$Subject, analyze_last_char)
+
+counts6 <- emails %>% 
+  group_by(lastChar) %>%
+  tally()
+
+emails %>%
+  ggplot(aes(lastChar, `Open Rate`))+
+  geom_boxplot()+
+  geom_text(data = counts6,
+            aes(lastChar, Inf, label = n), vjust = 1)
+
+emails %>%
+  ggplot( aes(x=lastChar, y=`Open Rate`, fill=lastChar)) +
+    geom_violin(width=1.0) +
+    geom_boxplot(width=0.1, color="grey", alpha=0.2) +
+    scale_fill_viridis(discrete = TRUE) +
+    theme_ipsum() +
+    theme(
+      legend.position="none",
+      plot.title = element_text(size=11)
+    )+
+  geom_text(data = counts6,
+            aes(lastChar, Inf, label = n), vjust = 1)
+
+emailsLC <- emails %>% 
+  filter(lastChar == 'Period' | lastChar == 'No Punctuation') 
+
+modelLC <- lm(`Open Rate` ~ lastChar, emailsLC)
+anova(modelLC)
+```
+
+```{r}
+noPunc <- emails %>% filter(Punctuation == "No")
+noPunc <- noPunc %>%
+  mutate (Source = "No Punctuation")
+emailsNP <- emailsLC %>% 
+  filter(lastChar == 'No Punctuation') %>%
+  mutate (Source = "No Ending Punctuation")
+emailsP <- emailsLC %>% 
+  filter(lastChar == 'Period')%>%
+  mutate (Source = "Ending Period") 
+tmp <- rbind(emailsNP, emailsP)
+both <- rbind(tmp, noPunc)
+
+both2 <- rbind(emailsP, noPunc)
+
+both %>%
+  ggplot(aes(Source, `Open Rate`))+
+  geom_boxplot()
+
+modelBoth <- lm(`Open Rate` ~ Source, both)
+anova(modelBoth)
+
+both2 %>%
+  ggplot(aes(Source, `Open Rate`))+
+  geom_boxplot()
+
+modelBoth2 <- lm(`Open Rate` ~ Source, both2)
+anova(modelBoth2)
 ```
 
