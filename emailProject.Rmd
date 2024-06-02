@@ -2,7 +2,7 @@
 title: "Email Report"
 author: "Justin Wininger"
 date: "`r Sys.Date()`"
-output: word_document
+output: html_document
 ---
 
 ```{r setup, include=FALSE}
@@ -54,16 +54,14 @@ This project analyzes several statistics of 640 email campaigns sent out by clie
 ```{r, warning = FALSE, message = FALSE}
 
 ggplot(data=emailsMF, mapping=aes(x=Day, y=`Open Rate`, fill = Day))+
-  geom_boxplot()+
+  geom_boxplot(color = '#9EA032', fill = c('#173C58', '#4091B0', '#173C58', '#4091B0', '#173C58'))+
   theme_ipsum() +
     theme(
       legend.position="none",
-      plot.title = element_text(size=11),
-      axis.text.x = element_text(angle = -45, vjust = 0.5, hjust=1)
+      plot.title = element_text(size=11)
     )+
   geom_text(data = countsMF,
             aes(Day, Inf, label = n), vjust = 1)
-
 
 # Plot
 emailsMF %>%
@@ -92,24 +90,25 @@ emailsMF %>%
   theme_ipsum() +
     theme(
       legend.position="none",
-      plot.title = element_text(size=11)
+      plot.title = element_text(size=11),
+      axis.text.x = element_text(angle = 45)
     )+
   facet_wrap( ~ Covid)+
   geom_text(data = countsMF2,
             aes(Day, Inf, label = n), vjust = 1)
 ```
 
-```{r}
+```{r message = FALSE, warning = FALSE}
 emails <- emails %>% mutate(`Subject Length` = nchar(Subject))
 
 ggplot(data=emails, mapping=aes(x=`Subject Length`, y=`Open Rate`))+
-  geom_point()+
+  geom_point(color = c('#4091B0'))+
   theme_ipsum() +
     theme(
       legend.position="none",
       plot.title = element_text(size=11)
     )+
-  geom_smooth(method=lm,se=FALSE)+
+  geom_smooth(method=lm,se=FALSE, color = '#173C58')+
   labs(Title = 'Open Rate by Subject Length',
        x = 'Subject Length (characters)')
 
@@ -135,7 +134,7 @@ counts2 <- emails %>%
 
 emails %>%
   ggplot(aes(Punctuation, `Open Rate`, fill = Punctuation))+
-  geom_boxplot()+
+  geom_boxplot(color= '#9EA032', fill = c('#173C58', '#4091B0'))+
   theme_ipsum() +
     theme(
       legend.position="none",
@@ -147,6 +146,7 @@ emails %>%
 puncM <- lm(`Open Rate` ~ Punctuation, data=emails)
 apuncM <- anova(puncM)
 ```
+
 ```{r}
 # Function to check for specific punctuation marks
 has_period <- function(text) {
@@ -200,7 +200,7 @@ counts7 <- havePCEQ %>%
 
 havePCEQ %>%
   ggplot(aes(Punc, `Open Rate`, fill = Punc))+
-  geom_boxplot()+
+  geom_boxplot(color= '#9EA032', fill = c('#173C58', '#4091B0', '#173C58', '#4091B0'))+
   theme_ipsum() +
     theme(
       legend.position="none",
@@ -210,145 +210,7 @@ havePCEQ %>%
             aes(Punc, Inf, label = n), vjust = 1)
 ```
 
-```{r}
-# # Function to count specific punctuation marks
-# count_periods <- function(text) {
-#   str_count(text, "\\.")
-# }
-# 
-# count_colons <- function(text) {
-#   str_count(text, ":")
-# }
-# 
-# count_exclamations <- function(text) {
-#   str_count(text, "!")
-# }
-# 
-# count_questions <- function(text) {
-#   str_count(text, "\\?")
-# }
-# 
-# # Add new columns for the counts of specific punctuation marks
-# emails <- emails %>%
-#   mutate(
-#     period_count = count_periods(Subject),
-#     colon_count = count_colons(Subject),
-#     exclamation_count = count_exclamations(Subject),
-#     question_count = count_questions(Subject)
-#   )
-# set.seed(123)
-# get_most_frequent <- function(period, colon, exclamation, question) {
-#   counts <- c(Period = period, Colon = colon, `Exclamation Point` = exclamation, `Question Mark` = question)
-#   max_count <- max(counts)
-#   if (max_count == 0) {
-#     return("No Punctuation")
-#   } else {
-#     most_frequent <- names(which(counts == max_count))
-#     return(sample(most_frequent, 1))  # Pick one at random in case of a tie
-#   }
-# }
-# 
-# # Add the 'mostFrequent' column
-# emails <- emails %>%
-#   rowwise() %>%
-#   mutate(mostFrequent = get_most_frequent(period_count, colon_count, exclamation_count, question_count)) %>%
-#   ungroup()
-# 
-# counts3 <- emails %>% 
-#   group_by(mostFrequent) %>%
-#   tally()
-# 
-# emails %>%
-#   ggplot(aes(mostFrequent, `Open Rate`))+
-#   geom_boxplot()+
-#   geom_text(data = counts3,
-#             aes(mostFrequent, Inf, label = n), vjust = 1)
-```
-
-```{r}
-# get_punctuation_type <- function(period, colon, exclamation, question) {
-#   punctuation_counts <- c(period, colon, exclamation, question)
-#   types_present <- sum(punctuation_counts > 0)
-#   if (types_present == 0) {
-#     return("None")
-#   } else if (types_present == 1) {
-#     if (period > 0) {
-#       return("Period")
-#     } else if (colon > 0) {
-#       return("Colon")
-#     } else if (exclamation > 0) {
-#       return("Exclamation")
-#     } else if (question > 0) {
-#       return("Question")
-#     }
-#   } else {
-#     return("Mixed")
-#   }
-# }
-# 
-# # Add the 'punctuation2' column
-# emails <- emails %>%
-#   rowwise() %>%
-#   mutate(Punctuation2 = get_punctuation_type(period_count, colon_count, exclamation_count, question_count)) %>%
-#   ungroup()
-# 
-# emailsSame <- emails %>% 
-#   filter(Punctuation2 != 'Mixed') %>%
-#   filter(Punctuation2 != 'Exclamation') %>%
-#   filter(Punctuation2 != 'Question')
-# 
-# counts4 <- emailsSame %>% 
-#   group_by(Punctuation2) %>%
-#   tally()
-# 
-# emailsSame %>%
-#   ggplot(aes(Punctuation2, `Open Rate`))+
-#   geom_boxplot()+
-#   geom_text(data = counts4,
-#             aes(Punctuation2, Inf, label = n), vjust = 1)
-```
-
-```{r}
-# # Function to determine the last punctuation type
-# get_last_punctuation <- function(text) {
-#   # Match the last punctuation mark in the text
-#   last_punc <- str_match(text, ".*([\\.,:;!?])[^\\.,:;!?]*$")
-#   
-#   if (is.na(last_punc[2])) {
-#     return("None")
-#   } else {
-#     if (last_punc[2] == ".") {
-#       return("Period")
-#     } else if (last_punc[2] == ":") {
-#       return("Colon")
-#     } else if (last_punc[2] == "!") {
-#       return("Exclamation")
-#     } else if (last_punc[2] == "?") {
-#       return("Question")
-#     } else {
-#       return("None")
-#     }
-#   }
-# }
-# 
-# # Add the 'lastPunc' column
-# emails <- emails %>%
-#   rowwise() %>%
-#   mutate(lastPunc = get_last_punctuation(Subject)) %>%
-#   ungroup()
-# 
-# counts5 <- emails %>% 
-#   group_by(lastPunc) %>%
-#   tally()
-# 
-# emails %>%
-#   ggplot(aes(lastPunc, `Open Rate`))+
-#   geom_boxplot()+
-#   geom_text(data = counts5,
-#             aes(lastPunc, Inf, label = n), vjust = 1)
-```
-
-```{r}
+```{r, warning = FALSE, message = FALSE}
 analyze_last_char <- function(text) {
   last_char <- substr(text, nchar(text), nchar(text))
   if (last_char == ".") {
@@ -376,7 +238,7 @@ counts6 <- emailsLC %>%
 
 emailsLC %>%
   ggplot(aes(lastChar, `Open Rate`, fill = lastChar))+
-  geom_boxplot()+
+  geom_boxplot(color= '#9EA032', fill = c('#173C58', '#4091B0'))+
   theme_ipsum() +
     theme(
       legend.position="none",
@@ -391,7 +253,7 @@ emailsLC %>%
 emailsLC %>%
   ggplot( aes(x=lastChar, y=`Open Rate`, fill=lastChar)) +
     geom_violin(width=1.0) +
-    geom_boxplot(width=0.1, color="grey", alpha=0.2) +
+    geom_boxplot(width=0.1, color="#9EA032", alpha=0.2) +
     scale_fill_viridis(discrete = TRUE) +
     theme_ipsum() +
     theme(
@@ -402,7 +264,8 @@ emailsLC %>%
             aes(lastChar, Inf, label = n), vjust = 1) +
   labs(x= 'Last Character',
        y= 'Open Rate',
-       title = ' Open Rate by Last Character')
+       title = ' Open Rate by Last Character')+
+  scale_fill_manual(values=c('#173C58', '#4091B0'))
 
 
 
@@ -435,7 +298,7 @@ countsBoth2 <- both2 %>%
 
 both %>%
   ggplot(aes(Source, `Open Rate`, fill = Source))+
-  geom_boxplot()+
+  geom_boxplot(color= '#9EA032', fill = c('#173C58', '#4091B0', '#173C58'))+
   theme_ipsum() +
     theme(
       legend.position="none",
@@ -449,7 +312,7 @@ amB <- anova(modelBoth)
 
 both2 %>%
   ggplot(aes(Source, `Open Rate`, fill = Source))+
-  geom_boxplot()+
+  geom_boxplot(color= '#9EA032', fill = c('#173C58', '#4091B0'))+
   theme_ipsum() +
     theme(
       legend.position="none",
@@ -469,7 +332,7 @@ countsSize <- emails %>%
 
 emails %>% 
   ggplot(aes(Size, `Open Rate`, fill = Size))+
-  geom_boxplot()+
+  geom_boxplot(color= '#9EA032', fill = c('#173C58', '#4091B0'))+
   theme_ipsum() +
     theme(
       legend.position="none",
@@ -478,7 +341,10 @@ emails %>%
   geom_text(data = countsSize,
             aes(Size, Inf, label = n), vjust = 1)
 
+
+# scale_fill_manual(values=c('orange', 'green', 'navy'))
+# for boxplots etc
+
 sizeM <- lm(`Open Rate` ~ Size, emails)
 asizeM <- anova(sizeM)
 ```
-
