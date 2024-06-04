@@ -67,7 +67,7 @@ ggplot(data=emailsMF, mapping=aes(x=Day, y=`Open Rate`, fill = Day))+
 emailsMF %>%
   ggplot( aes(x=Day, y=`Open Rate`, fill=Day)) +
     geom_violin(width=1.0) +
-    geom_boxplot(width=0.1, color="grey", alpha=0.2) +
+    geom_boxplot(width=0.1, alpha=0.2, color = '#9EA032') +
     scale_fill_viridis(discrete = TRUE) +
     theme_ipsum() +
     theme(
@@ -75,7 +75,8 @@ emailsMF %>%
       plot.title = element_text(size=11)
     )+
   geom_text(data = countsMF,
-            aes(Day, Inf, label = n), vjust = 1)
+            aes(Day, Inf, label = n), vjust = 1)+
+  scale_fill_manual(values = c('#173C58', '#4091B0', '#173C58', '#4091B0', '#173C58'))
 
 emailsBC <- subset(emailsMF, Covid == "Pre-covid")
 emailsAC <- subset(emailsMF, Covid == "Post-covid")
@@ -86,7 +87,7 @@ countsMF2 <- emailsMF %>%
 
 emailsMF %>%
   ggplot(aes(Day, `Open Rate`, fill = Day,))+
-  geom_boxplot()+
+  geom_boxplot(color = '#9EA032', fill = c('#173C58', '#4091B0', '#173C58', '#4091B0', '#173C58', '#173C58', '#4091B0', '#173C58', '#4091B0', '#173C58'))+
   theme_ipsum() +
     theme(
       legend.position="none",
@@ -165,42 +166,95 @@ has_question <- function(text) {
   grepl("\\?", text)
 }
 
+has_comma <- function(text) {
+  grepl("\\,", text)
+}
+
+has_hyphen <- function(text) {
+  grepl("\\-", text)
+}
+
+has_ampersand <- function(text) {
+  grepl("\\&", text)
+}
+
+has_quote <- function(text) {
+  grepl('\\"', text)
+}
+
+has_em <- function(text) {
+  grepl('\\—', text)
+}
+
+has_em2 <- function(text) {
+  grepl('\\–', text)
+}
+
+has_slash <- function(text) {
+  grepl('\\/', text)
+}
+
 # Add new columns for specific punctuation marks
 emails <- emails %>%
   mutate(
     Period = ifelse(has_period(Subject), "Yes", "No"),
     Colon = ifelse(has_colon(Subject), "Yes", "No"),
     ExclamationPoint = ifelse(has_exclamation(Subject), "Yes", "No"),
-    QuestionMark = ifelse(has_question(Subject), "Yes", "No")
+    QuestionMark = ifelse(has_question(Subject), "Yes", "No"),
+    Comma = ifelse(has_comma(Subject), "Yes", "No"),
+    Hyphen = ifelse(has_hyphen(Subject), "Yes", "No"),
+    Ampersand = ifelse(has_ampersand(Subject), "Yes", "No"),
+    Quote = ifelse(has_quote(Subject), "Yes", "No"),
+    Em = ifelse(has_em(Subject), "Yes", "No"),
+    Em2 = ifelse(has_em2(Subject), "Yes", "No"),
+    Slash = ifelse(has_slash(Subject), "Yes", "No")
   )
 ```
 
 ```{r}
-haveP <- emails %>% 
+haveP <- emails %>%
   filter(Period == "Yes") %>%
   mutate(Punc = "Period")
-haveC <- emails %>% 
+haveC <- emails %>%
   filter(Colon == "Yes") %>%
   mutate(Punc = "Colon")
-haveE <- emails %>% 
+haveE <- emails %>%
   filter(ExclamationPoint == "Yes")%>%
-  mutate(Punc = "Exclamation Point")
-haveQ <- emails %>% 
+  mutate(Punc = "Exclamation\nPoint")
+haveQ <- emails %>%
   filter(QuestionMark == "Yes")%>%
-  mutate(Punc = "Question Mark")
+  mutate(Punc = "Question\nMark")
+haveN <- emails %>%
+  filter(Punctuation == "No")%>%
+  mutate(Punc = "None")
+haveCom <- emails %>%
+  filter(Comma == 'Yes')%>%
+  mutate(Punc = 'Comma')
+haveD <- emails %>%
+  filter(Hyphen == 'Yes' | Em == 'Yes' | Em2 == 'Yes')%>%
+  mutate(Punc = 'Dash')
+haveAmp <- emails %>%
+  filter(Ampersand == 'Yes')%>%
+  mutate(Punc = 'Ampersand')
+haveQuo <- emails %>%
+  filter(Quote == 'Yes')%>%
+  mutate(Punc = 'Quotes')
+haveSlash <- emails %>%
+  filter(Slash == 'Yes')%>%
+  mutate(Punc = 'Slash')
 
-havePC <- rbind(haveP, haveC)
-haveEQ <- rbind(haveE, haveQ)
 
-havePCEQ <- rbind(havePC, haveEQ)
+tmp <- emails %>% filter(Punctuation == 'Yes' & (Hyphen == 'Yes' | Em == 'Yes' | Em2 == 'Yes'))
 
-counts7 <- havePCEQ %>% 
+havePunc <- do.call("rbind", list(haveP, haveC, haveE, haveQ, haveN, haveCom, haveD, haveAmp, haveQuo, haveSlash))
+
+counts7 <- havePunc %>% 
   group_by(Punc) %>%
   tally()
 
-havePCEQ %>%
+havePunc %>%
   ggplot(aes(Punc, `Open Rate`, fill = Punc))+
-  geom_boxplot(color= '#9EA032', fill = c('#173C58', '#4091B0', '#173C58', '#4091B0'))+
+  geom_boxplot()+
   theme_ipsum() +
     theme(
       legend.position="none",
