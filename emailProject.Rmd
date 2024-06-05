@@ -3,6 +3,8 @@ title: "Email Report"
 author: "Justin Wininger"
 date: "`r Sys.Date()`"
 output: html_document
+editor_options: 
+  chunk_output_type: inline
 ---
 
 ```{r setup, include=FALSE}
@@ -27,9 +29,9 @@ emails$Day <- factor(emails$Day, levels = day_order, ordered = TRUE)
 
 emails <- emails %>% filter(`Total Recipients` > 20 & Opens > 10)
 
-emails$Covid <- ifelse(emails$`Sent Date` < as.Date("2020-03-01"), "Pre-Covid", "Post-Covid")
+emails$Covid <- ifelse(emails$`Sent Date` < as.Date("2020-03-01"), "Pre-COVID", "Post-COVID")
 
-covid_order <- c("Pre-Covid", "Post-Covid")
+covid_order <- c("Pre-COVID", "Post-COVID")
 emails$Covid <- factor(emails$Covid, levels = covid_order, ordered = TRUE)
 
 emailsMF <- emails %>% filter(Day != 'Sunday')
@@ -52,66 +54,16 @@ emails$Size <- ifelse(emails$`Total Recipients` >= 2500, "Large", "Small")
 This project analyzes several statistics of 640 email campaigns sent out by clients of Endowment Development Services since 2010. 
 
 ```{r, warning = FALSE, message = FALSE}
-
-ggplot(data=emailsMF, mapping=aes(x=Day, y=`Open Rate`, fill = Day))+
-  geom_boxplot(color = '#9EA032', fill = c('#173C58', '#4091B0', '#173C58', '#4091B0', '#173C58'))+
-  theme_ipsum() +
-    theme(
-      legend.position="none",
-      plot.title = element_text(size=11)
-    )+
-  geom_text(data = countsMF,
-            aes(Day, Inf, label = n), vjust = 1)
-
-# Plot
-emailsMF %>%
-  ggplot( aes(x=Day, y=`Open Rate`, fill=Day)) +
-    geom_violin(width=1.0) +
-    geom_boxplot(width=0.1, alpha=0.2, color = '#9EA032') +
-    scale_fill_viridis(discrete = TRUE) +
-    theme_ipsum() +
-    theme(
-      legend.position="none",
-      plot.title = element_text(size=11)
-    )+
-  geom_text(data = countsMF,
-            aes(Day, Inf, label = n), vjust = 1)+
-  scale_fill_manual(values = c('#173C58', '#4091B0', '#173C58', '#4091B0', '#173C58'))
-
 emailsBC <- subset(emailsMF, Covid == "Pre-covid")
 emailsAC <- subset(emailsMF, Covid == "Post-covid")
 
 countsMF2 <- emailsMF %>% 
   group_by(Day, Covid) %>%
   tally()
-
-emailsMF %>%
-  ggplot(aes(Day, `Open Rate`, fill = Day,))+
-  geom_boxplot(color = '#9EA032', fill = c('#173C58', '#4091B0', '#173C58', '#4091B0', '#173C58', '#173C58', '#4091B0', '#173C58', '#4091B0', '#173C58'))+
-  theme_ipsum() +
-    theme(
-      legend.position="none",
-      plot.title = element_text(size=11),
-      axis.text.x = element_text(angle = 45)
-    )+
-  facet_wrap( ~ Covid)+
-  geom_text(data = countsMF2,
-            aes(Day, Inf, label = n), vjust = 1)
 ```
 
 ```{r message = FALSE, warning = FALSE}
 emails <- emails %>% mutate(`Subject Length` = nchar(Subject))
-
-ggplot(data=emails, mapping=aes(x=`Subject Length`, y=`Open Rate`))+
-  geom_point(color = c('#4091B0'))+
-  theme_ipsum() +
-    theme(
-      legend.position="none",
-      plot.title = element_text(size=11)
-    )+
-  geom_smooth(method=lm,se=FALSE, color = '#173C58')+
-  labs(Title = 'Open Rate by Subject Length',
-       x = 'Subject Length (characters)')
 
 SL <- lm(`Open Rate` ~ `Subject Length`, data = emails)
 
@@ -133,19 +85,9 @@ counts2 <- emails %>%
   group_by(Punctuation) %>%
   tally()
 
-emails %>%
-  ggplot(aes(Punctuation, `Open Rate`, fill = Punctuation))+
-  geom_boxplot(color= '#9EA032', fill = c('#173C58', '#4091B0'))+
-  theme_ipsum() +
-    theme(
-      legend.position="none",
-      plot.title = element_text(size=11)
-    )+
-  geom_text(data = counts2,
-            aes(Punctuation, Inf, label = n), vjust = 1)
-
 puncM <- lm(`Open Rate` ~ Punctuation, data=emails)
 apuncM <- anova(puncM)
+#p = 0.3261859
 ```
 
 ```{r}
@@ -248,20 +190,13 @@ tmp <- emails %>% filter(Punctuation == 'Yes' & (Hyphen == 'Yes' | Em == 'Yes' |
 
 havePunc <- do.call("rbind", list(haveP, haveC, haveE, haveQ, haveN, haveCom, haveD, haveAmp, haveQuo, haveSlash))
 
+havePunc <- havePunc %>% 
+  group_by(Punc) %>%
+  filter(n() >= 15)
+
 counts7 <- havePunc %>% 
   group_by(Punc) %>%
   tally()
-
-havePunc %>%
-  ggplot(aes(Punc, `Open Rate`, fill = Punc))+
-  geom_boxplot()+
-  theme_ipsum() +
-    theme(
-      legend.position="none",
-      plot.title = element_text(size=11)
-    )+
-  geom_text(data = counts7,
-            aes(Punc, Inf, label = n), vjust = 1)
 ```
 
 ```{r, warning = FALSE, message = FALSE}
@@ -275,6 +210,16 @@ analyze_last_char <- function(text) {
     return("Question")
   } else if (last_char == ":") {
     return("Colon")
+  } else if (last_char == "&") {
+    return("Ampersand")
+  } else if (last_char == ",") {
+    return("Comma")
+  } else if (last_char == "/") {
+    return("Slash")
+  } else if (last_char == '"') {
+    return("Quotes")
+  } else if (last_char == "-" | last_char == "—" | last_char == "–") {
+    return("Dash")
   } else {
     return("No Punctuation")
   }
@@ -286,45 +231,17 @@ emails$lastChar <- sapply(emails$Subject, analyze_last_char)
 emailsLC <- emails %>% 
   filter(lastChar == 'Period' | lastChar == 'No Punctuation') 
 
-counts6 <- emailsLC %>% 
+counts6 <- emails %>% 
   group_by(lastChar) %>%
   tally()
 
-emailsLC %>%
-  ggplot(aes(lastChar, `Open Rate`, fill = lastChar))+
-  geom_boxplot(color= '#9EA032', fill = c('#173C58', '#4091B0'))+
-  theme_ipsum() +
-    theme(
-      legend.position="none",
-      plot.title = element_text(size=11)
-    )+
-  geom_text(data = counts6,
-            aes(lastChar, Inf, label = n), vjust = 1)+
-  labs(x= 'Last Character',
-       y= 'Open Rate',
-       title = ' Open Rate by Last Character')
-
-emailsLC %>%
-  ggplot( aes(x=lastChar, y=`Open Rate`, fill=lastChar)) +
-    geom_violin(width=1.0) +
-    geom_boxplot(width=0.1, color="#9EA032", alpha=0.2) +
-    scale_fill_viridis(discrete = TRUE) +
-    theme_ipsum() +
-    theme(
-      legend.position="none",
-      plot.title = element_text(size=11)
-    )+
-  geom_text(data = counts6,
-            aes(lastChar, Inf, label = n), vjust = 1) +
-  labs(x= 'Last Character',
-       y= 'Open Rate',
-       title = ' Open Rate by Last Character')+
-  scale_fill_manual(values=c('#173C58', '#4091B0'))
-
-
+counts3 <- emailsLC %>% 
+  group_by(lastChar) %>%
+  tally()
 
 modelLC <- lm(`Open Rate` ~ lastChar, emailsLC)
 amodelLC <- anova(modelLC)
+#p = 2.27148e-06
 ```
 
 ```{r}
@@ -350,33 +267,13 @@ countsBoth2 <- both2 %>%
   group_by(Source) %>%
   tally()
 
-both %>%
-  ggplot(aes(Source, `Open Rate`, fill = Source))+
-  geom_boxplot(color= '#9EA032', fill = c('#173C58', '#4091B0', '#173C58'))+
-  theme_ipsum() +
-    theme(
-      legend.position="none",
-      plot.title = element_text(size=11)
-    )+
-  geom_text(data = countsBoth,
-            aes(Source, Inf, label = n), vjust = 1)
-
 modelBoth <- lm(`Open Rate` ~ Source, both)
 amB <- anova(modelBoth)
-
-both2 %>%
-  ggplot(aes(Source, `Open Rate`, fill = Source))+
-  geom_boxplot(color= '#9EA032', fill = c('#173C58', '#4091B0'))+
-  theme_ipsum() +
-    theme(
-      legend.position="none",
-      plot.title = element_text(size=11)
-    )+
-  geom_text(data = countsBoth2,
-            aes(Source, Inf, label = n), vjust = 1)
+#p = 9.909737e-06
 
 modelBoth2 <- lm(`Open Rate` ~ Source, both2)
 amB2 <- anova(modelBoth2)
+#p = 0.005394861
 ```
 
 ```{r}
@@ -384,21 +281,194 @@ countsSize <- emails %>%
   group_by(Size) %>%
   tally()
 
-emails %>% 
-  ggplot(aes(Size, `Open Rate`, fill = Size))+
-  geom_boxplot(color= '#9EA032', fill = c('#173C58', '#4091B0'))+
-  theme_ipsum() +
-    theme(
-      legend.position="none",
-      plot.title = element_text(size=11)
-    )+
-  geom_text(data = countsSize,
-            aes(Size, Inf, label = n), vjust = 1)
-
 
 # scale_fill_manual(values=c('orange', 'green', 'navy'))
 # for boxplots etc
 
 sizeM <- lm(`Open Rate` ~ Size, emails)
 asizeM <- anova(sizeM)
+#p = 0.1473003
+
+emails <- emails %>%
+  group_by(Client, Subject) %>%
+  mutate(Duplicate = if_else(n_distinct(`Sent Date`) > 1, "Yes", "No")) %>%
+  ungroup()
+
+countsDup <- emails %>% 
+  group_by(Duplicate) %>%
+  tally()
+
+modelD <- lm(`Open Rate` ~ Duplicate, data = emails)
+anovaD <- anova(modelD)
+#p = 0.7162413
 ```
+
+```{r plots}
+ggplot(data=emailsMF, mapping=aes(x=Day, y=`Open Rate`, fill = Day))+
+  geom_boxplot(fill = c('#003a5d', '#0091b3', '#003a5d', '#0091b3', '#003a5d'))+
+  theme_ipsum(axis_title_size = 12) +
+    theme(
+      legend.position="none",
+      plot.title = element_text(size=11)
+    )+
+  labs(title = 'Open Rate by Day of the Week')+
+  geom_text(data = countsMF,
+            aes(Day, Inf, label = n), vjust = 1)+
+  stat_summary(fun = median, geom = "crossbar", width = .75, color = "#a9ad00", size = .4)
+
+emailsMF %>%
+  ggplot( aes(x=Day, y=`Open Rate`, fill=Day)) +
+    geom_violin(width=1.0) +
+    geom_boxplot(width=0.4, alpha=0.2, color = 'black') +
+    scale_fill_viridis(discrete = TRUE) +
+    theme_ipsum(axis_title_size = 12) +
+    theme(
+      legend.position="none",
+      plot.title = element_text(size=11)
+    )+
+  labs(title = 'Open Rate by Day of the Week')+
+  geom_text(data = countsMF,
+            aes(Day, Inf, label = n), vjust = 1)+
+  scale_fill_manual(values = c('#003a5d', '#0091b3', '#003a5d', '#0091b3', '#003a5d'))+
+  stat_summary(fun = median, geom = "crossbar", width = .4, color = "#a9ad00", size = .4)
+
+emailsMF %>%
+  ggplot(aes(Day, `Open Rate`, fill = Day,))+
+  geom_boxplot(fill = c('#003a5d', '#0091b3', '#003a5d', '#0091b3', '#003a5d', '#003a5d', '#0091b3', '#003a5d', '#0091b3', '#003a5d'))+
+  theme_ipsum(axis_title_size = 12) +
+    theme(
+      legend.position="none",
+      plot.title = element_text(size=11),
+      axis.text.x = element_text(angle = 45)
+    )+
+  labs(title = 'Open Rate by Day of the Week Relative to COVID-19')+
+  facet_wrap( ~ Covid)+
+  geom_text(data = countsMF2,
+            aes(Day, Inf, label = n), vjust = 1)+
+  stat_summary(fun = median, geom = "crossbar", width = .75, color = "#a9ad00", size = .4)
+
+ggplot(data=emails, mapping=aes(x=`Subject Length`, y=`Open Rate`))+
+  geom_point(color = c('#0091b3'))+
+  theme_ipsum(axis_title_size = 12) +
+    theme(
+      legend.position="none",
+      plot.title = element_text(size=11)
+    )+
+  geom_smooth(method=lm,se=FALSE, color = '#003a5d')+
+  labs(title = 'Open Rate by Subject Length',
+       x = 'Subject Length (characters)')
+
+ggplot(data = emails, aes(x = Punctuation, y = `Open Rate`, fill = Punctuation))+
+  geom_boxplot(fill = c('#003a5d', '#0091b3'))+
+  theme_ipsum(axis_title_size = 12) +
+    theme(
+      legend.position="none",
+      plot.title = element_text(size=11)
+    )+
+  labs(title = "Open Rate by Presence of Punctuation")+
+  geom_text(data = counts2,
+            aes(Punctuation, Inf, label = n), vjust = 1) +
+  stat_summary(fun = median, geom = "crossbar", width = .75, color = "#a9ad00", size = .4)
+
+havePunc %>%
+  ggplot(aes(Punc, `Open Rate`, fill = Punc))+
+  geom_boxplot(fill = c('#003a5d', '#0091b3', '#003a5d', '#0091b3', '#003a5d'))+
+  theme_ipsum(axis_title_size = 12) +
+    theme(
+      legend.position="none",
+      plot.title = element_text(size=11)
+    )+
+  labs(title = "Open Rate by Type of Punctuation",
+       x = 'Punctuation')+
+  geom_text(data = counts7,
+            aes(Punc, Inf, label = n), vjust = 1)+
+  stat_summary(fun = median, geom = "crossbar", width = .75, color = "#a9ad00", size = .4)
+
+emailsLC %>%
+  ggplot(aes(lastChar, `Open Rate`, fill = lastChar))+
+  geom_boxplot(fill=c('#003a5d', '#0091b3'))+
+  theme_ipsum(axis_title_size = 12) +
+    theme(
+      legend.position="none",
+      plot.title = element_text(size=11)
+    )+
+  geom_text(data = counts3,
+            aes(lastChar, Inf, label = n), vjust = 1)+
+  labs(x= 'Last Character',
+       y= 'Open Rate',
+       title = ' Open Rate by Last Character')+
+  stat_summary(fun = median, geom = "crossbar", width = .75, color = "#a9ad00", size = .4)
+
+emailsLC %>%
+  ggplot( aes(x=lastChar, y=`Open Rate`, fill=lastChar)) +
+    geom_violin(width=1.0) +
+    geom_boxplot(width=0.3, color="black", alpha=0.2) +
+    scale_fill_viridis(discrete = TRUE) +
+    theme_ipsum(axis_title_size = 12) +
+    theme(
+      legend.position="none",
+      plot.title = element_text(size=11)
+    )+
+  geom_text(data = counts3,
+            aes(lastChar, Inf, label = n), vjust = 1) +
+  labs(x= 'Last Character',
+       y= 'Open Rate',
+       title = ' Open Rate by Last Character')+
+  scale_fill_manual(values=c('#003a5d', '#0091b3'))+
+  stat_summary(fun = median, geom = "crossbar", width = .3, color = "#a9ad00", size = .4)
+
+both %>%
+  ggplot(aes(Source, `Open Rate`, fill = Source))+
+  geom_boxplot(fill = c('#003a5d', '#0091b3', '#003a5d'))+
+  theme_ipsum(axis_title_size = 12) +
+    theme(
+      legend.position="none",
+      plot.title = element_text(size=11)
+    )+
+  labs(title = "Open Rate by Punctuation",
+       x = "Punctuation")+
+  geom_text(data = countsBoth,
+            aes(Source, Inf, label = n), vjust = 1)+
+  stat_summary(fun = median, geom = "crossbar", width = .75, color = "#a9ad00", size = .4)
+
+both2 %>%
+  ggplot(aes(Source, `Open Rate`, fill = Source))+
+  geom_boxplot(fill = c('#003a5d', '#0091b3'))+
+  theme_ipsum(axis_title_size = 12) +
+    theme(
+      legend.position="none",
+      plot.title = element_text(size=11)
+    )+
+  labs(title = "Open Rate by Punctuation",
+       x = "Punctuation")+
+  geom_text(data = countsBoth2,
+            aes(Source, Inf, label = n), vjust = 1)+
+  stat_summary(fun = median, geom = "crossbar", width = .75, color = "#a9ad00", size = .4)
+
+emails %>% 
+  ggplot(aes(Size, `Open Rate`, fill = Size))+
+  geom_boxplot(fill = c('#003a5d', '#0091b3'))+
+  theme_ipsum(axis_title_size = 12) +
+    theme(
+      legend.position="none",
+      plot.title = element_text(size=11)
+    )+
+  labs(title = "Open Rate by Company Size")+
+  geom_text(data = countsSize,
+            aes(Size, Inf, label = n), vjust = 1)+
+  stat_summary(fun = median, geom = "crossbar", width = .75, color = "#a9ad00", size = .4)
+
+emails %>%
+  ggplot(aes(Duplicate, `Open Rate`))+
+  geom_boxplot(fill = c('#003a5d', '#0091b3'))+
+  theme_ipsum(axis_title_size = 12) +
+    theme(
+      legend.position="none",
+      plot.title = element_text(size=11)
+    )+
+  labs(title = "Open Rate by Duplicate Subjects")+
+  geom_text(data = countsDup,
+            aes(Duplicate, Inf, label = n), vjust = 1)+
+  stat_summary(fun = median, geom = "crossbar", width = .75, color = "#a9ad00", size = .4)
+```
+
