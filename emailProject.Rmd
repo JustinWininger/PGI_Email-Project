@@ -16,8 +16,15 @@ library(lubridate)
 library(hrbrthemes)
 library(viridis)
 library(mosaic)
+
 emails <- read_excel("PGI master.xlsx")
 
+
+emails <- emails %>%
+  mutate(`Open Rate` = `Open Rate` * 100)
+
+emails <- emails %>%
+  mutate(`Click Rate` = `Click Rate` * 100)
 ```
 
 ```{r, data}
@@ -84,10 +91,6 @@ emails <- emails %>%
 counts2 <- emails %>% 
   group_by(Punctuation) %>%
   tally()
-
-puncM <- lm(`Open Rate` ~ Punctuation, data=emails)
-apuncM <- anova(puncM)
-#p = 0.3261859
 ```
 
 ```{r}
@@ -238,10 +241,6 @@ counts6 <- emails %>%
 counts3 <- emailsLC %>% 
   group_by(lastChar) %>%
   tally()
-
-modelLC <- lm(`Open Rate` ~ lastChar, emailsLC)
-amodelLC <- anova(modelLC)
-#p = 2.27148e-06
 ```
 
 ```{r}
@@ -266,14 +265,6 @@ both2 <- rbind(emailsP, noPunc)
 countsBoth2 <- both2 %>% 
   group_by(Source) %>%
   tally()
-
-modelBoth <- lm(`Open Rate` ~ Source, both)
-amB <- anova(modelBoth)
-#p = 9.909737e-06
-
-modelBoth2 <- lm(`Open Rate` ~ Source, both2)
-amB2 <- anova(modelBoth2)
-#p = 0.005394861
 ```
 
 ```{r}
@@ -285,10 +276,6 @@ countsSize <- emails %>%
 # scale_fill_manual(values=c('orange', 'green', 'navy'))
 # for boxplots etc
 
-sizeM <- lm(`Open Rate` ~ Size, emails)
-asizeM <- anova(sizeM)
-#p = 0.1473003
-
 emails <- emails %>%
   group_by(Client, Subject) %>%
   mutate(Duplicate = if_else(n_distinct(`Sent Date`) > 1, "Yes", "No")) %>%
@@ -297,13 +284,9 @@ emails <- emails %>%
 countsDup <- emails %>% 
   group_by(Duplicate) %>%
   tally()
-
-modelD <- lm(`Open Rate` ~ Duplicate, data = emails)
-anovaD <- anova(modelD)
-#p = 0.7162413
 ```
 
-```{r plots}
+```{r plots, warning = FALSE, message = F}
 ggplot(data=emailsMF, mapping=aes(x=Day, y=`Open Rate`, fill = Day))+
   geom_boxplot(fill = c('#003a5d', '#0091b3', '#003a5d', '#0091b3', '#003a5d'))+
   theme_ipsum(axis_title_size = 12) +
@@ -314,7 +297,9 @@ ggplot(data=emailsMF, mapping=aes(x=Day, y=`Open Rate`, fill = Day))+
   labs(title = 'Open Rate by Day of the Week')+
   geom_text(data = countsMF,
             aes(Day, Inf, label = n), vjust = 1)+
-  stat_summary(fun = median, geom = "crossbar", width = .75, color = "#a9ad00", size = .4)
+  stat_summary(fun = median, geom = "crossbar", width = .75, color = "#a9ad00", size = .4)+
+  stat_summary(fun = median, geom = "text", aes(label = paste0(round(..y.., 2), "%")), 
+               position = position_dodge(width = 0.75), vjust = -0.5, color = "white")
 
 emailsMF %>%
   ggplot( aes(x=Day, y=`Open Rate`, fill=Day)) +
@@ -330,7 +315,9 @@ emailsMF %>%
   geom_text(data = countsMF,
             aes(Day, Inf, label = n), vjust = 1)+
   scale_fill_manual(values = c('#003a5d', '#0091b3', '#003a5d', '#0091b3', '#003a5d'))+
-  stat_summary(fun = median, geom = "crossbar", width = .4, color = "#a9ad00", size = .4)
+  stat_summary(fun = median, geom = "crossbar", width = .4, color = "#a9ad00", size = .4)+
+  stat_summary(fun = median, geom = "text", aes(label = paste0(round(..y.., 1), "%")), 
+               position = position_dodge(width = 0.75), vjust = -0.5, color = "white")
 
 emailsMF %>%
   ggplot(aes(Day, `Open Rate`, fill = Day,))+
@@ -345,7 +332,9 @@ emailsMF %>%
   facet_wrap( ~ Covid)+
   geom_text(data = countsMF2,
             aes(Day, Inf, label = n), vjust = 1)+
-  stat_summary(fun = median, geom = "crossbar", width = .75, color = "#a9ad00", size = .4)
+  stat_summary(fun = median, geom = "crossbar", width = .75, color = "#a9ad00", size = .4)+
+  stat_summary(fun = median, geom = "text", aes(label = paste0(round(..y.., 1), "%")),
+               position = position_dodge(width = 0.75), vjust = -0.5, color = "white")
 
 ggplot(data=emails, mapping=aes(x=`Subject Length`, y=`Open Rate`))+
   geom_point(color = c('#0091b3'))+
@@ -368,7 +357,13 @@ ggplot(data = emails, aes(x = Punctuation, y = `Open Rate`, fill = Punctuation))
   labs(title = "Open Rate by Presence of Punctuation")+
   geom_text(data = counts2,
             aes(Punctuation, Inf, label = n), vjust = 1) +
-  stat_summary(fun = median, geom = "crossbar", width = .75, color = "#a9ad00", size = .4)
+  stat_summary(fun = median, geom = "crossbar", width = .75, color = "#a9ad00", size = .4)+
+  stat_summary(fun = median, geom = "text", aes(label = paste0(round(..y.., 2), "%")), 
+               position = position_dodge(width = 0.75), vjust = -0.5, color = "white")
+
+puncM <- lm(`Open Rate` ~ Punctuation, data=emails)
+anovaP <- anova(puncM)
+#p = 0.3261859
 
 havePunc %>%
   ggplot(aes(Punc, `Open Rate`, fill = Punc))+
@@ -382,7 +377,9 @@ havePunc %>%
        x = 'Punctuation')+
   geom_text(data = counts7,
             aes(Punc, Inf, label = n), vjust = 1)+
-  stat_summary(fun = median, geom = "crossbar", width = .75, color = "#a9ad00", size = .4)
+  stat_summary(fun = median, geom = "crossbar", width = .75, color = "#a9ad00", size = .4)+
+  stat_summary(fun = median, geom = "text", aes(label = paste0(round(..y.., 2), "%")), 
+               position = position_dodge(width = 0.75), vjust = -0.5, color = "white")
 
 emailsLC %>%
   ggplot(aes(lastChar, `Open Rate`, fill = lastChar))+
@@ -397,7 +394,13 @@ emailsLC %>%
   labs(x= 'Last Character',
        y= 'Open Rate',
        title = ' Open Rate by Last Character')+
-  stat_summary(fun = median, geom = "crossbar", width = .75, color = "#a9ad00", size = .4)
+  stat_summary(fun = median, geom = "crossbar", width = .75, color = "#a9ad00", size = .4)+
+  stat_summary(fun = median, geom = "text", aes(label = paste0(round(..y.., 2), "%")), 
+               position = position_dodge(width = 0.75), vjust = -0.5, color = "white")
+
+modelLC <- lm(`Open Rate` ~ lastChar, emailsLC)
+anovaLC <- anova(modelLC)
+#p = 2.27148e-06
 
 emailsLC %>%
   ggplot( aes(x=lastChar, y=`Open Rate`, fill=lastChar)) +
@@ -415,7 +418,9 @@ emailsLC %>%
        y= 'Open Rate',
        title = ' Open Rate by Last Character')+
   scale_fill_manual(values=c('#003a5d', '#0091b3'))+
-  stat_summary(fun = median, geom = "crossbar", width = .3, color = "#a9ad00", size = .4)
+  stat_summary(fun = median, geom = "crossbar", width = .3, color = "#a9ad00", size = .4)+
+  stat_summary(fun = median, geom = "text", aes(label = paste0(round(..y.., 2), "%")), 
+               position = position_dodge(width = 0.75), vjust = -0.5, color = "white")
 
 both %>%
   ggplot(aes(Source, `Open Rate`, fill = Source))+
@@ -429,7 +434,13 @@ both %>%
        x = "Punctuation")+
   geom_text(data = countsBoth,
             aes(Source, Inf, label = n), vjust = 1)+
-  stat_summary(fun = median, geom = "crossbar", width = .75, color = "#a9ad00", size = .4)
+  stat_summary(fun = median, geom = "crossbar", width = .75, color = "#a9ad00", size = .4)+
+  stat_summary(fun = median, geom = "text", aes(label = paste0(round(..y.., 2), "%")), 
+               position = position_dodge(width = 0.75), vjust = -0.5, color = "white")
+
+modelBoth <- lm(`Open Rate` ~ Source, both)
+anovaB <- anova(modelBoth)
+#p = 9.909737e-06
 
 both2 %>%
   ggplot(aes(Source, `Open Rate`, fill = Source))+
@@ -443,7 +454,13 @@ both2 %>%
        x = "Punctuation")+
   geom_text(data = countsBoth2,
             aes(Source, Inf, label = n), vjust = 1)+
-  stat_summary(fun = median, geom = "crossbar", width = .75, color = "#a9ad00", size = .4)
+  stat_summary(fun = median, geom = "crossbar", width = .75, color = "#a9ad00", size = .4)+
+  stat_summary(fun = median, geom = "text", aes(label = paste0(round(..y.., 2), "%")), 
+               position = position_dodge(width = 0.75), vjust = -0.5, color = "white")
+
+modelBoth2 <- lm(`Open Rate` ~ Source, both2)
+anovaB2 <- anova(modelBoth2)
+#p = 0.005394861
 
 emails %>% 
   ggplot(aes(Size, `Open Rate`, fill = Size))+
@@ -456,7 +473,13 @@ emails %>%
   labs(title = "Open Rate by Company Size")+
   geom_text(data = countsSize,
             aes(Size, Inf, label = n), vjust = 1)+
-  stat_summary(fun = median, geom = "crossbar", width = .75, color = "#a9ad00", size = .4)
+  stat_summary(fun = median, geom = "crossbar", width = .75, color = "#a9ad00", size = .4)+
+  stat_summary(fun = median, geom = "text", aes(label = paste0(round(..y.., 2), "%")), 
+               position = position_dodge(width = 0.75), vjust = -0.5, color = "white")
+
+sizeM <- lm(`Open Rate` ~ Size, emails)
+asizeM <- anova(sizeM)
+#p = 0.1473003
 
 emails %>%
   ggplot(aes(Duplicate, `Open Rate`))+
@@ -469,6 +492,12 @@ emails %>%
   labs(title = "Open Rate by Duplicate Subjects")+
   geom_text(data = countsDup,
             aes(Duplicate, Inf, label = n), vjust = 1)+
-  stat_summary(fun = median, geom = "crossbar", width = .75, color = "#a9ad00", size = .4)
+  stat_summary(fun = median, geom = "crossbar", width = .75, color = "#a9ad00", size = .4)+
+  stat_summary(fun = median, geom = "text", aes(label = paste0(round(..y.., 2), "%")), 
+               position = position_dodge(width = 0.75), vjust = -0.5, color = "white")
+
+modelD <- lm(`Open Rate` ~ Duplicate, data = emails)
+anovaD <- anova(modelD)
+#p = 0.7162413
 ```
 
