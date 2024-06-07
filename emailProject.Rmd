@@ -58,7 +58,7 @@ emails$Size <- ifelse(emails$`Total Recipients` >= 2500, "Large", "Small")
 
 # Introduction
 
-This project analyzes several statistics of 640 email campaigns sent out by clients of Endowment Development Services since 2010. 
+This project analyzes several statistics of 645 email campaigns sent out by clients of Endowment Development Services since 2010.
 
 ```{r, warning = FALSE, message = FALSE}
 emailsBC <- subset(emailsMF, Covid == "Pre-covid")
@@ -272,10 +272,6 @@ countsSize <- emails %>%
   group_by(Size) %>%
   tally()
 
-
-# scale_fill_manual(values=c('orange', 'green', 'navy'))
-# for boxplots etc
-
 emails <- emails %>%
   group_by(Client, Subject) %>%
   mutate(Duplicate = if_else(n_distinct(`Sent Date`) > 1, "Yes", "No")) %>%
@@ -286,13 +282,117 @@ countsDup <- emails %>%
   tally()
 ```
 
+```{r}
+analyze_keywords <- function(data, subject_col, keywords) {
+  emails <- emails %>%
+    mutate(across(all_of(subject_col), tolower, .names = "lower_{col}"))
+  
+  for (keyword_group in keywords) {
+    # Split the keywords if there are synonyms
+    keyword_synonyms <- unlist(strsplit(keyword_group, "/"))
+    base_keyword <- keyword_synonyms[1]
+    
+    # Create a new column name
+    new_col_name <- paste0("have", base_keyword)
+    
+    # Check if any of the synonyms are in the subject column
+    emails[[new_col_name]] <- ifelse(grepl(paste(keyword_synonyms, collapse = "|"), emails[[paste0("lower_", subject_col)]]), "Yes", "No")
+  }
+  
+  # Check for numbers 1-10 in both numeric and written form
+  numbers_written <- c("one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten")
+  numbers_numeric <- as.character(1:10)
+  all_numbers <- c(numbers_written, numbers_numeric)
+  emails[["haveNumber"]] <- ifelse(grepl(paste(all_numbers, collapse = "|"), emails[[paste0("lower_", subject_col)]]), "Yes", "No")
+  
+  # Remove the temporary lowercase subject column
+  emails <- emails %>%
+    select(-starts_with("lower_"))
+  
+  return(emails)
+}
+
+# Example usage
+# Assuming `df` is your dataset and `Subject` is the column to analyze
+keywords <- c("gift/gifts", "legacy/legacies", "easy/smart/simple", "you/your/yours", 
+              "impact/effect/affect", "option/options", "meaningful", "wise", 
+              "support", "year-end", "give", "reward/rewarding", "will", 
+              "support", "tax/taxes", "us/we", "help", "plan/planning")
+
+# Applying the function to the dataset
+emails <- analyze_keywords(emails, "Subject", keywords)
+```
+
+```{r}
+haveGift <- emails %>%
+  filter(havegift == "Yes") %>%
+  mutate(Keyword = "Gift(s)")
+haveLegacy <- emails %>%
+  filter(havelegacy == "Yes") %>%
+  mutate(Keyword = "Legacy(ies)")
+haveEasy <- emails %>%
+  filter(haveeasy == "Yes")%>%
+  mutate(Keyword = "Easy / Smart / Simple")
+haveYou <- emails %>%
+  filter(haveyou == "Yes")%>%
+  mutate(Keyword = "You / Your / Yours")
+haveImpact <- emails %>%
+  filter(haveimpact == "Yes")%>%
+  mutate(Keyword = "Impact / Effect")
+haveOption <- emails %>%
+  filter(haveoption == 'Yes')%>%
+  mutate(Keyword = 'Option(s)')
+haveMeaningful <- emails %>%
+  filter(havemeaningful == 'Yes')%>%
+  mutate(Keyword = 'Meaningful')
+haveWise <- emails %>%
+  filter(havewise == 'Yes')%>%
+  mutate(Keyword = 'Wise')
+haveSupport <- emails %>%
+  filter(havesupport == 'Yes')%>%
+  mutate(Keyword = 'Support')
+haveYearEnd <- emails %>%
+  filter(`haveyear-end` == 'Yes')%>%
+  mutate(Keyword = 'Year-End')
+haveNumber <- emails %>%
+  filter(haveNumber == "Yes") %>%
+  mutate(Keyword = "A Number")
+haveGive <- emails %>%
+  filter(havegive == "Yes") %>%
+  mutate(Keyword = "Give")
+haveReward <- emails %>%
+  filter(havereward == "Yes")%>%
+  mutate(Keyword = "Reward(ing)")
+haveWill <- emails %>%
+  filter(havewill == "Yes")%>%
+  mutate(Keyword = "Will")
+haveTax <- emails %>%
+  filter(havetax == "Yes")%>%
+  mutate(Keyword = "Tax(es)")
+haveUs <- emails %>%
+  filter(haveus == 'Yes')%>%
+  mutate(Keyword = 'Us / We')
+haveHelp <- emails %>%
+  filter(havehelp == 'Yes')%>%
+  mutate(Keyword = 'Help')
+havePlan <- emails %>%
+  filter(haveplan == 'Yes')%>%
+  mutate(Keyword = 'Plan(ning)')
+
+keywords <- do.call("rbind", list(haveGift, haveLegacy, haveEasy, haveYou, haveImpact, haveOption, haveMeaningful, haveWise, haveSupport, haveYearEnd, haveNumber, haveGive, haveReward, haveWill, haveTax, haveUs, haveHelp, havePlan))
+
+countsKeywords <- keywords %>% 
+  group_by(Keyword) %>%
+  tally()
+```
+
 ```{r plots, warning = FALSE, message = F}
 ggplot(data=emailsMF, mapping=aes(x=Day, y=`Open Rate`, fill = Day))+
   geom_boxplot(fill = c('#003a5d', '#0091b3', '#003a5d', '#0091b3', '#003a5d'))+
   theme_ipsum(axis_title_size = 12) +
     theme(
       legend.position="none",
-      plot.title = element_text(size=11)
+      
     )+
   labs(title = 'Open Rate by Day of the Week')+
   geom_text(data = countsMF,
@@ -302,31 +402,13 @@ ggplot(data=emailsMF, mapping=aes(x=Day, y=`Open Rate`, fill = Day))+
                position = position_dodge(width = 0.75), vjust = -0.5, color = "white")
 
 emailsMF %>%
-  ggplot( aes(x=Day, y=`Open Rate`, fill=Day)) +
-    geom_violin(width=1.0) +
-    geom_boxplot(width=0.4, alpha=0.2, color = 'black') +
-    scale_fill_viridis(discrete = TRUE) +
-    theme_ipsum(axis_title_size = 12) +
-    theme(
-      legend.position="none",
-      plot.title = element_text(size=11)
-    )+
-  labs(title = 'Open Rate by Day of the Week')+
-  geom_text(data = countsMF,
-            aes(Day, Inf, label = n), vjust = 1)+
-  scale_fill_manual(values = c('#003a5d', '#0091b3', '#003a5d', '#0091b3', '#003a5d'))+
-  stat_summary(fun = median, geom = "crossbar", width = .4, color = "#a9ad00", size = .4)+
-  stat_summary(fun = median, geom = "text", aes(label = paste0(round(..y.., 1), "%")), 
-               position = position_dodge(width = 0.75), vjust = -0.5, color = "white")
-
-emailsMF %>%
   ggplot(aes(Day, `Open Rate`, fill = Day,))+
   geom_boxplot(fill = c('#003a5d', '#0091b3', '#003a5d', '#0091b3', '#003a5d', '#003a5d', '#0091b3', '#003a5d', '#0091b3', '#003a5d'))+
   theme_ipsum(axis_title_size = 12) +
     theme(
       legend.position="none",
-      plot.title = element_text(size=11),
-      axis.text.x = element_text(angle = 45)
+      ,
+      axis.text.x = element_text(angle = 90, hjust=1)
     )+
   labs(title = 'Open Rate by Day of the Week Relative to COVID-19')+
   facet_wrap( ~ Covid)+
@@ -341,7 +423,7 @@ ggplot(data=emails, mapping=aes(x=`Subject Length`, y=`Open Rate`))+
   theme_ipsum(axis_title_size = 12) +
     theme(
       legend.position="none",
-      plot.title = element_text(size=11)
+      
     )+
   geom_smooth(method=lm,se=FALSE, color = '#003a5d')+
   labs(title = 'Open Rate by Subject Length',
@@ -352,7 +434,7 @@ ggplot(data = emails, aes(x = Punctuation, y = `Open Rate`, fill = Punctuation))
   theme_ipsum(axis_title_size = 12) +
     theme(
       legend.position="none",
-      plot.title = element_text(size=11)
+      
     )+
   labs(title = "Open Rate by Presence of Punctuation")+
   geom_text(data = counts2,
@@ -371,7 +453,7 @@ havePunc %>%
   theme_ipsum(axis_title_size = 12) +
     theme(
       legend.position="none",
-      plot.title = element_text(size=11)
+      
     )+
   labs(title = "Open Rate by Type of Punctuation",
        x = 'Punctuation')+
@@ -387,7 +469,7 @@ emailsLC %>%
   theme_ipsum(axis_title_size = 12) +
     theme(
       legend.position="none",
-      plot.title = element_text(size=11)
+      
     )+
   geom_text(data = counts3,
             aes(lastChar, Inf, label = n), vjust = 1)+
@@ -410,7 +492,7 @@ emailsLC %>%
     theme_ipsum(axis_title_size = 12) +
     theme(
       legend.position="none",
-      plot.title = element_text(size=11)
+      
     )+
   geom_text(data = counts3,
             aes(lastChar, Inf, label = n), vjust = 1) +
@@ -422,33 +504,13 @@ emailsLC %>%
   stat_summary(fun = median, geom = "text", aes(label = paste0(round(..y.., 2), "%")), 
                position = position_dodge(width = 0.75), vjust = -0.5, color = "white")
 
-both %>%
-  ggplot(aes(Source, `Open Rate`, fill = Source))+
-  geom_boxplot(fill = c('#003a5d', '#0091b3', '#003a5d'))+
-  theme_ipsum(axis_title_size = 12) +
-    theme(
-      legend.position="none",
-      plot.title = element_text(size=11)
-    )+
-  labs(title = "Open Rate by Punctuation",
-       x = "Punctuation")+
-  geom_text(data = countsBoth,
-            aes(Source, Inf, label = n), vjust = 1)+
-  stat_summary(fun = median, geom = "crossbar", width = .75, color = "#a9ad00", size = .4)+
-  stat_summary(fun = median, geom = "text", aes(label = paste0(round(..y.., 2), "%")), 
-               position = position_dodge(width = 0.75), vjust = -0.5, color = "white")
-
-modelBoth <- lm(`Open Rate` ~ Source, both)
-anovaB <- anova(modelBoth)
-#p = 9.909737e-06
-
 both2 %>%
   ggplot(aes(Source, `Open Rate`, fill = Source))+
   geom_boxplot(fill = c('#003a5d', '#0091b3'))+
   theme_ipsum(axis_title_size = 12) +
     theme(
       legend.position="none",
-      plot.title = element_text(size=11)
+      
     )+
   labs(title = "Open Rate by Punctuation",
        x = "Punctuation")+
@@ -468,7 +530,7 @@ emails %>%
   theme_ipsum(axis_title_size = 12) +
     theme(
       legend.position="none",
-      plot.title = element_text(size=11)
+      
     )+
   labs(title = "Open Rate by Company Size")+
   geom_text(data = countsSize,
@@ -487,7 +549,7 @@ emails %>%
   theme_ipsum(axis_title_size = 12) +
     theme(
       legend.position="none",
-      plot.title = element_text(size=11)
+      
     )+
   labs(title = "Open Rate by Duplicate Subjects")+
   geom_text(data = countsDup,
@@ -499,5 +561,19 @@ emails %>%
 modelD <- lm(`Open Rate` ~ Duplicate, data = emails)
 anovaD <- anova(modelD)
 #p = 0.7162413
-```
 
+keywords %>%
+  ggplot(aes(x = reorder(Keyword, `Open Rate`, FUN = median), y = `Click Rate`))+
+  geom_boxplot(fill = c('#003a5d', '#0091b3', '#003a5d', '#0091b3', '#003a5d', '#0091b3', '#003a5d', '#0091b3', '#003a5d', '#0091b3', '#003a5d', '#0091b3', '#003a5d', '#0091b3', '#003a5d', '#0091b3', '#003a5d', '#0091b3'))+
+  geom_text(data = countsKeywords,
+            aes(Keyword, Inf, label = n), vjust = 1)+
+  theme_ipsum(axis_title_size = 12)+
+  theme(axis.text.x = element_text(angle = 90, hjust=1))+
+  stat_summary(fun = median, geom = "crossbar", width = .75, color = "#a9ad00", size = .4)+
+  labs(title = "Open Rate by Presence of Keywords",
+       x = 'Keyword')
+
+modelK <- lm(`Open Rate` ~ Keyword, keywords)
+anovaK <- anova(modelK)
+#p = 0.0001408233
+```
