@@ -563,7 +563,7 @@ anovaD <- anova(modelD)
 #p = 0.7162413
 
 keywords %>%
-  ggplot(aes(x = reorder(Keyword, `Open Rate`, FUN = median), y = `Click Rate`))+
+  ggplot(aes(x = reorder(Keyword, `Open Rate`, FUN = median), y = `Open Rate`))+
   geom_boxplot(fill = c('#003a5d', '#0091b3', '#003a5d', '#0091b3', '#003a5d', '#0091b3', '#003a5d', '#0091b3', '#003a5d', '#0091b3', '#003a5d', '#0091b3', '#003a5d', '#0091b3', '#003a5d', '#0091b3', '#003a5d', '#0091b3'))+
   geom_text(data = countsKeywords,
             aes(Keyword, Inf, label = n), vjust = 1)+
