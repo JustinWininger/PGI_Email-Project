@@ -7,7 +7,7 @@ editor_options:
   chunk_output_type: inline
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include=FALSE, warning = FALSE, message = F}
 knitr::opts_chunk$set(echo = FALSE, dpi = 300)
 remove(list = ls())
 library(readxl)
@@ -30,7 +30,7 @@ emails <- emails %>%
   mutate(`Bounce Rate` = `Bounce Rate` * 100)
 ```
 
-```{r, data}
+```{r message = F, warning = F}
 emails$Day <- as.Date(emails$`Sent Date`)
 emails$Day <- weekdays(emails$Day)
 day_order <- c("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday")
@@ -82,57 +82,27 @@ average_recipients <- emails %>%
   summarise(recipientList = median(`Total Recipients`))
 
 average_recipients$Size <- ifelse(average_recipients$recipientList >= 2500, "Large", "Small")
-```
 
-# Introduction
+size <- emails %>%
+  group_by(Size)%>%
+  summarise(
+    openRate=median(`Open Rate`),
+    clickRate=median(`Click Rate`),
+    bounceRate=median(`Bounce Rate`)
+    )
 
-This report analyzes several statistics of 645 email campaigns including over 1.5 million emails sent out by 59 nonprofit organizations represented by Endowment Development Services since 2010.
+size <- subset( size, select = -Size )
 
-# Size
+chisqS <- chisq.test(size)
+#p = 0.9185
 
-Nonprofit organizations sizes within these data vary wildly. Some have list sizes of just 50, while others have list sizes of almost 30,000. The average list size is only 2,473. Using 2,500 as an arbitrary benchmark between small and large, among the 59 nonprofit organizations represented, 27 of them are considered large and 32 of them are small. More statistics are in the table below.
-
-| Size  | Count | Average List Size | Average Open Rate | Average Click Rate | Average Bounce Rate |
-|:----------:|:----------:|:----------:|:----------:|:----------:|:----------:|
-|  All  |  59   |       2473        |      34.43%       |       2.86%        |        7.42%        |
-| Large |  27   |       5170        |      34.44%       |       1.56%        |        6.88%        |
-| Small |  32   |       1101        |      34.43%       |       3.52%        |        6.98%        |
-
-Looking at the table, the results do not appear to be significantly different. Performing a Chi-Square Test For Homogeneity confirms it. There is not a statistically significant difference between large and small list sizes in open rate, click rate, or bounce rate.
-
-# Day of the Week
-
-Once work on an email campaign is finished, perhaps the biggest question faced is when to send it. Below is a side-by-side box and whisker plot of the open rate plotted by day of the week. 
-
-```{r message=FALSE, warning=FALSE}
-#| fig.cap="Open Rate by Day of the Week",
-latex_options = c("HOLD_position")
-ggplot(data=emailsMF, mapping=aes(x=Day, y=`Open Rate`, fill = Day))+
-  geom_boxplot(fill = c('#003a5d', '#0091b3', '#003a5d', '#0091b3', '#003a5d'))+
-  theme_ipsum(axis_title_size = 12) +
-    theme(
-      legend.position="none",
-    )+
-  labs(title = 'Open Rate by Day of the Week')+
-  geom_text(data = countsMF,
-            aes(Day, Inf, label = n), vjust = 1)+
-  stat_summary(fun = median, geom = "crossbar", width = .75, color = "#a9ad00", size = .4)+
-  stat_summary(fun = median, geom = "text", aes(label = paste0(round(..y.., 2), "%")), 
-               position = position_dodge(width = 0.75), vjust = -0.5, color = "white")
-```
-
-This visualization reveals that not all days are created equal. Unfortunately, there was not enough data on Saturday or Sunday, so they were excluded. Friday and Tuesday seem to be the best days to send campaigns, and Wednesday and Thursday are the worst days. This relationship is statistically significant. 
-
-```{r message=FALSE, warning=FALSE}
 emailsBC <- subset(emailsMF, Covid == "Pre-covid")
 emailsAC <- subset(emailsMF, Covid == "Post-covid")
 
 countsMF2 <- emailsMF %>% 
   group_by(Day, Covid) %>%
   tally()
-```
 
-```{r message = FALSE, warning = FALSE}
 emails <- emails %>% mutate(`Subject Length` = nchar(Subject))
 
 SL <- lm(`Open Rate` ~ `Subject Length`, data = emails)
@@ -140,9 +110,7 @@ SL <- lm(`Open Rate` ~ `Subject Length`, data = emails)
 sSL <- summary(SL)
 
 sSLo <- sSL[["coefficients"]]
-```
 
-```{r}
 has_punctuation <- function(text) {
   grepl("[[:punct:]]", text)
 }
@@ -151,12 +119,23 @@ has_punctuation <- function(text) {
 emails <- emails %>%
   mutate(Punctuation = ifelse(has_punctuation(Subject), "Yes", "No"))
 
+punctuation <- emails %>%
+  group_by(Punctuation)%>%
+  summarise(
+    openRate=round(median(`Open Rate`), digits =2),
+    clickRate=round(median(`Click Rate`), digits =2),
+    bounceRate=round(median(`Bounce Rate`), digits =2)
+    )
+
+punctuation <- subset( punctuation, select = -Punctuation )
+
+chisqP <- chisq.test(punctuation)
+#p = 0.8956
+
 counts2 <- emails %>% 
   group_by(Punctuation) %>%
   tally()
-```
 
-```{r}
 # Function to check for specific punctuation marks
 has_period <- function(text) {
   grepl("\\.", text)
@@ -217,9 +196,7 @@ emails <- emails %>%
     Em2 = ifelse(has_em2(Subject), "Yes", "No"),
     Slash = ifelse(has_slash(Subject), "Yes", "No")
   )
-```
 
-```{r}
 haveP <- emails %>%
   filter(Period == "Yes") %>%
   mutate(Punc = "Period")
@@ -263,9 +240,7 @@ havePunc <- havePunc %>%
 counts7 <- havePunc %>% 
   group_by(Punc) %>%
   tally()
-```
 
-```{r, warning = FALSE, message = FALSE}
 analyze_last_char <- function(text) {
   last_char <- substr(text, nchar(text), nchar(text))
   if (last_char == ".") {
@@ -304,9 +279,7 @@ counts6 <- emails %>%
 counts3 <- emailsLC %>% 
   group_by(lastChar) %>%
   tally()
-```
 
-```{r}
 noPunc <- emails %>% filter(Punctuation == "No")
 noPunc <- noPunc %>%
   mutate (Source = "No Punctuation")
@@ -328,9 +301,7 @@ both2 <- rbind(emailsP, noPunc)
 countsBoth2 <- both2 %>% 
   group_by(Source) %>%
   tally()
-```
 
-```{r}
 countsSize <- emails %>% 
   group_by(Size) %>%
   tally()
@@ -343,9 +314,7 @@ emails <- emails %>%
 countsDup <- emails %>% 
   group_by(Duplicate) %>%
   tally()
-```
 
-```{r}
 analyze_keywords <- function(data, subject_col, keywords) {
   emails <- emails %>%
     mutate(across(all_of(subject_col), tolower, .names = "lower_{col}"))
@@ -384,9 +353,7 @@ keywords <- c("gift/gifts", "legacy/legacies", "easy/smart/simple", "you/your/yo
 
 # Applying the function to the dataset
 emails <- analyze_keywords(emails, "Subject", keywords)
-```
 
-```{r}
 haveGift <- emails %>%
   filter(havegift == "Yes") %>%
   mutate(Keyword = "Gift(s)")
@@ -467,7 +434,52 @@ countsTechniques2 <- techniques %>%
   tally()
 ```
 
-```{r plots, warning = FALSE, message = F}
+# Introduction
+
+This report analyzes several statistics of 645 email campaigns including over 1.5 million emails sent out by 59 nonprofit organizations represented by Endowment Development Services since 2010. When comparing two or more groups, this report will use the median instead of the mean or average. The median, being the point where there are equal amounts of observations larger and smaller, is more resistant to outliers than the mean and is therefore a much better representation of the "typical" observation. This report will mainly observe the open rate and click rate of these various email campaigns. Because it is physically impossible for either one to be negative, both will be skewed to the right. Because of this, using the mean would result in inflated and unrealistic claims. Using the median, therefore, is the best choice.
+
+# Size
+
+Nonprofit organizations sizes within these data vary wildly. Some have list sizes of just 50, while others have list sizes of almost 30,000. The average list size is only 2,473. Using 2,500 as an arbitrary benchmark between small and large, among the 59 nonprofit organizations represented, 27 of them are considered large and 32 of them are small. More statistics are in the table below.
+
+| Size  | Count | Median List Size | Median Open Rate | Median Click Rate | Median Bounce Rate |
+|:----------:|:----------:|:----------:|:----------:|:----------:|:----------:|
+|  All  |  59   |       1403       |      33.27%      |       0.97%       |       4.73%        |
+| Large |  27   |       4219       |      33.28%      |       0.87%       |       3.88%        |
+| Small |  32   |       838        |      32.99%      |       1.18%       |       4.98%        |
+
+Looking at the table, the results do not appear to be significantly different. Performing a Chi-Square Test for Homogeneity confirms it. There is not a statistically significant difference between large and small list sizes in open rate, click rate, or bounce rate.
+
+# Day of the Week
+
+Once work on an email campaign is finished, perhaps the biggest question faced is when to send it. Below is a side-by-side box and whisker plot of the open rate plotted by day of the week. The lime colored line represents the median open rate for each day. The white text is that median.
+
+```{r message=FALSE, warning=FALSE}
+#| fig.cap="Open Rate by Day of the Week",
+latex_options = c("HOLD_position")
+ggplot(data=emailsMF, mapping=aes(x=Day, y=`Open Rate`, fill = Day))+
+  geom_boxplot(fill = c('#003a5d', '#0091b3', '#003a5d', '#0091b3', '#003a5d'))+
+  theme_ipsum(axis_title_size = 12) +
+    theme(
+      legend.position="none",
+    )+
+  labs(title = 'Open Rate by Day of the Week')+
+  geom_text(data = countsMF,
+            aes(Day, Inf, label = n), vjust = 1)+
+  stat_summary(fun = median, geom = "crossbar", width = .75, color = "#a9ad00", size = .4)+
+  stat_summary(fun = median, geom = "text", aes(label = paste0(round(..y.., 2), "%")), 
+               position = position_dodge(width = 0.75), vjust = -0.5, color = "white")
+```
+
+This visualization reveals that not all days are created equal. Unfortunately, there was not enough data on Saturday or Sunday, so they were excluded. Friday and Tuesday seem to be the best days to send campaigns, and Wednesday and Thursday are the worst days. This relationship is statistically significant. Despite being statistically significant, there is always still the chance that any variation seen is due to random chance or lurking variables. For example, perhaps the nonprofits with the most loyal donors happen to have a policy to send campaigns on Fridays. This would skew the data. Sending campaigns on Tuesdays or Fridays, therefore, is not a guarantee the open rate will increase, but those days are the best bet to get a higher open rate.
+
+Interestingly, the days with the highest median click rate are Thursday and Wednesday, respectively. The two lowest days are Monday and Friday. Friday being the worst day for clicks is very surprising, especially considering that it is the best day for opens. This disparity makes a "best day" very hard to determine. Some days have high open rates, while other days have high click rates. Ultimately, it will be up to the individual to decide which is more valuable to him: opens or clicks. The only thing that can definitively be said is that Mondays have low open and click rates; do not send email campaigns on Mondays.
+
+## COVID-19
+
+Unfortunately, the practice of donating to nonprofits was not unaffected by the pandemic. It might have ended up, however, being a net positive. Open and click rates for every single day increased after COVID, as seen in the visualization below.
+
+```{r}
 emailsMF %>%
   ggplot(aes(Day, `Open Rate`, fill = Day,))+
   geom_boxplot(fill = c('#003a5d', '#0091b3', '#003a5d', '#0091b3', '#003a5d', '#003a5d', '#0091b3', '#003a5d', '#0091b3', '#003a5d'))+
@@ -483,42 +495,56 @@ emailsMF %>%
   stat_summary(fun = median, geom = "crossbar", width = .75, color = "#a9ad00", size = .4)+
   stat_summary(fun = median, geom = "text", aes(label = paste0(round(..y.., 1), "%")),
                position = position_dodge(width = 0.75), vjust = -0.5, color = "white")
+```
 
+The observed shift makes sense. The pandemic forced people to digitize. A direct result of this digitization is that people spent more time working on their computers, which gives them more opportunities to check their emails. Median open rates increased, but so did the variability. This is represented by the size of the box. The bottom of the box is called the first quartile. It is the 25th percentile. The top of the box is called the third quartile and is the 75th percentile. Half of all observations, therefore, are contained within the box. Because the post-COVID boxes are taller, the data is more variable and has a wider range. Looking at only post-COVID, the best days to send campaigns for open rates are still Tuesday and Friday. However, Monday is now much better than it was, and Wednesday is much worse than it was.
+
+COVID made click rate decrease. The median click rate before the pandemic was 1.39%, but it is 0.86% after the pandemic. The days with the best click rates post-pandemic are Wednesday and Thursday, and the worst days are Monday and Friday. Once again, because the best days for open and click rate differ, it is up to the individual which is more important.
+
+# Subject Line
+
+The subject line is one of if not the most important parts of an email when it comes to engaging a potential donor. It is the first thing he will see. It is imperative, therefore, to maximize the effectiveness of the subject line.
+
+## Subject Length
+
+Are longer subjects more engaging? Below is a scatterplot that shows open rate by subject length in characters.
+
+```{r warning = F, message = F}
 ggplot(data=emails, mapping=aes(x=`Subject Length`, y=`Open Rate`))+
   geom_point(color = c('#0091b3'))+
   theme_ipsum(axis_title_size = 12) +
     theme(
       legend.position="none",
     )+
-  geom_smooth(method=loess,se=FALSE, color = '#003a5d')+
+  geom_smooth(method=lm,se=FALSE, color = '#003a5d', formula = y~x)+
   labs(title = 'Open Rate by Subject Length',
        x = 'Subject Length (characters)')
+```
 
-ggplot(data = emails, aes(x = Punctuation, y = `Open Rate`, fill = Punctuation))+
-  geom_boxplot(fill = c('#003a5d', '#0091b3'))+
-  theme_ipsum(axis_title_size = 12) +
-    theme(
-      legend.position="none",
-      
-    )+
-  labs(title = "Open Rate by Presence of Punctuation")+
-  geom_text(data = counts2,
-            aes(Punctuation, Inf, label = n), vjust = 1) +
-  stat_summary(fun = median, geom = "crossbar", width = .75, color = "#a9ad00", size = .4)+
-  stat_summary(fun = median, geom = "text", aes(label = paste0(round(..y.., 2), "%")), 
-               position = position_dodge(width = 0.75), vjust = -0.5, color = "white")
+The pattern of the points shows no clear relationship, but the line of best fit has a definite negative slope. This should mean that as subject length increases, open rate decreases. This relationship is even statistically significant. $R^2$ is a measure of goodness-of-fit. It essentially measures how much the variation in open rate is caused by subject length. The $R^2$ value for this model is 1.01%. Only 1% of the variation in open rate is caused by subject length. So, even though the negative linear relationship is statistically significant, the impact of subject length on open rate is essentially 0. It is safe to conclude, therefore, that subject length does not realistically matter when observing open rate, as long as subject length is somewhere between 15 and 90 characters.
 
-puncM <- lm(`Open Rate` ~ Punctuation, data=emails)
-anovaP <- anova(puncM)
-#p = 0.3261859
+## Punctuation
 
+Below is a table comparing subjects with punctuation versus subjects without punctuation.
+
+| Punctuation | Count | Median Open Rate | Median Click Rate |
+|:-----------:|:-----:|:----------------:|:-----------------:|
+|     No      |  178  |      34.69%      |       0.73%       |
+|     Yes     |  432  |      32.84%      |       1.26%       |
+
+Like before, the presence of punctuation does not significantly affect open or click rate. However, just like the days of the week, one must choose whether he wants a higher open or click rate. Subject lines with no punctuation have a higher open rate, but subject lines with punctuation have a higher click rate.
+
+### Types of Punctuation
+
+Punctuation alone is not enough information. There are tens of different types of punctuation. Below is a plot showing all types of punctuation with at least 15 observations.
+
+```{r}
 havePunc %>%
-  ggplot(aes(Punc, `Open Rate`, fill = Punc))+
+  ggplot(aes(x = reorder(Punc, `Open Rate`, FUN = median), y = `Open Rate`, fill = Punc))+
   geom_boxplot(fill = c('#003a5d', '#0091b3', '#003a5d', '#0091b3', '#003a5d'))+
   theme_ipsum(axis_title_size = 12) +
-    theme(
-      legend.position="none",
-      
+  theme(
+    legend.position="none",
     )+
   labs(title = "Open Rate by Type of Punctuation",
        x = 'Punctuation')+
@@ -528,27 +554,15 @@ havePunc %>%
   stat_summary(fun = median, geom = "text", aes(label = paste0(round(..y.., 2), "%")), 
                position = position_dodge(width = 0.75), vjust = -0.5, color = "white")
 
-emailsLC %>%
-  ggplot(aes(lastChar, `Open Rate`, fill = lastChar))+
-  geom_boxplot(fill=c('#003a5d', '#0091b3'))+
-  theme_ipsum(axis_title_size = 12) +
-    theme(
-      legend.position="none",
-      
-    )+
-  geom_text(data = counts3,
-            aes(lastChar, Inf, label = n), vjust = 1)+
-  labs(x= 'Last Character',
-       y= 'Open Rate',
-       title = ' Open Rate by Last Character')+
-  stat_summary(fun = median, geom = "crossbar", width = .75, color = "#a9ad00", size = .4)+
-  stat_summary(fun = median, geom = "text", aes(label = paste0(round(..y.., 2), "%")), 
-               position = position_dodge(width = 0.75), vjust = -0.5, color = "white")
+```
 
-modelLC <- lm(`Open Rate` ~ lastChar, emailsLC)
-anovaLC <- anova(modelLC)
-#p = 2.27148e-06
+This visualization is unusual in that is contains some observations multiple times. For example, a subject line with a colon, dash, and period would be included three times, once in each box. Based on the plot, dashes do not perform well and periods perform the best. As expected, click rates are the exact opposite. Dashes have the highest median click rate, and periods have the lowest. Subject lines, however, are designed to persuade people to open the email, not necessarily to click within it. When discussing subject lines, therefore, catering to open rates is much more important.
 
+### Last Character
+
+Within a subject line, the last character may be among the most important. Below is a violin plot comparing the difference between ending a subject with a period versus ending it with no punctuation at all. This violin plot contains the all-too-familiar boxplot, but also includes the distribution of the groups.
+
+```{r message = F, warning = F}
 emailsLC %>%
   ggplot( aes(x=lastChar, y=`Open Rate`, fill=lastChar)) +
     geom_violin(width=1.0) +
@@ -557,7 +571,6 @@ emailsLC %>%
     theme_ipsum(axis_title_size = 12) +
     theme(
       legend.position="none",
-      
     )+
   geom_text(data = counts3,
             aes(lastChar, Inf, label = n), vjust = 1) +
@@ -569,13 +582,40 @@ emailsLC %>%
   stat_summary(fun = median, geom = "text", aes(label = paste0(round(..y.., 2), "%")), 
                position = position_dodge(width = 0.75), vjust = -0.5, color = "white")
 
+modelLC <- lm(`Open Rate` ~ lastChar, emailsLC)
+anovaLC <- anova(modelLC)
+#p = 2.27148e-06
+```
+
+The boxplots alone reveal that ending with a period seems to be significantly better. The violin plot tells the same story, but to an even greater extent. The violin shows the distribution of observations. Where the violin is wider, there are more observations. It is very evident from this plot that ending the subject line with a period is significantly better. Plots alone are not enough, though. Luckily, Analysis of Variance (ANOVA) agrees with the plots and returns a statistically significant result. Naturally, however, click rates show the opposite relationship. Like previously stated though, click rates do not really matter in this context.
+
+### Duplicate Subjects
+
+Email campaigns sent by the same nonprofit can go one of two routes: unique subjects or identical subjects. Some nonprofits will send a new, fresh subject line for every campaign. Others will send the same or very similar subject lines for every campaign. Below is a table analyzing key statistics for duplicate subject lines.
+
+| Duplicate | Median Open Rate | Median Click Rate | Median Bounce Rate |
+|:---------:|:----------------:|:-----------------:|:------------------:|
+|    No     |      33.07%      |       0.91%       |       4.17%        |
+|    Yes    |      34.06%      |       1.40%       |       6.00%        |
+
+```{r}
+dupes <- emails %>% 
+  group_by(Duplicate) %>% 
+  summarise(
+    openRate=round(median(`Open Rate`), digits =4),
+    clickRate=round(median(`Click Rate`), digits =4),
+    bounceRate=round(median(`Bounce Rate`), digits =4),
+    spamRate=round(median(`Spam Rate`), digits =4)
+    )
+```
+
+```{r plots, warning = FALSE, message = F}
 both2 %>%
   ggplot(aes(Source, `Open Rate`, fill = Source))+
   geom_boxplot(fill = c('#003a5d', '#0091b3'))+
   theme_ipsum(axis_title_size = 12) +
     theme(
       legend.position="none",
-      
     )+
   labs(title = "Open Rate by Punctuation",
        x = "Punctuation")+
@@ -595,7 +635,6 @@ emails %>%
   theme_ipsum(axis_title_size = 12) +
     theme(
       legend.position="none",
-      
     )+
   labs(title = "Open Rate by Company Size")+
   geom_text(data = countsSize,
@@ -614,7 +653,6 @@ emails %>%
   theme_ipsum(axis_title_size = 12) +
     theme(
       legend.position="none",
-      
     )+
   labs(title = "Open Rate by Duplicate Subjects")+
   geom_text(data = countsDup,
@@ -685,5 +723,15 @@ topics %>%
   stat_summary(fun = median, geom = "text", aes(label = paste0(round(..y.., 1), "%")),
                position = position_dodge(width = 0.75), vjust = -0.5, color = "white")
 
-
+emails %>%
+  ggplot(aes(x = reorder(`Product Type`, `Open Rate`, FUN = median), y = `Open Rate`, fill = `Product Type`))+
+  geom_boxplot(fill = c('#003a5d', '#0091b3', '#003a5d', '#0091b3',  '#003a5d'))+
+  theme_ipsum()+
+  theme(axis.text.x = element_text(angle = 90, hjust=1),
+        legend.position = 'none')+
+  labs(title = 'Click Rate by Product Type',
+       x = 'Topic')+
+  stat_summary(fun = median, geom = "crossbar", width = .75, color = "#a9ad00", size = .4)+
+  stat_summary(fun = median, geom = "text", aes(label = paste0(round(..y.., 1), "%")),
+               position = position_dodge(width = 0.75), vjust = -0.5, color = "white")
 ```
