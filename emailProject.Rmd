@@ -2,7 +2,7 @@
 title: "Email Report"
 author: "Justin Wininger"
 date: "`r Sys.Date()`"
-output: html_document
+output: word_document
 editor_options: 
   chunk_output_type: inline
 ---
@@ -25,6 +25,9 @@ emails <- emails %>%
 
 emails <- emails %>%
   mutate(`Click Rate` = `Click Rate` * 100)
+
+emails <- emails %>%
+  mutate(`Bounce Rate` = `Bounce Rate` * 100)
 ```
 
 ```{r, data}
@@ -34,33 +37,93 @@ day_order <- c("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday",
 emails$Day <- factor(emails$Day, levels = day_order, ordered = TRUE)
 
 
-emails <- emails %>% filter(`Total Recipients` > 20 & Opens > 10)
+emails <- emails %>% filter(Topic != 'Test' & `Opens` > 10)
 
 emails$Covid <- ifelse(emails$`Sent Date` < as.Date("2020-03-01"), "Pre-COVID", "Post-COVID")
 
 covid_order <- c("Pre-COVID", "Post-COVID")
 emails$Covid <- factor(emails$Covid, levels = covid_order, ordered = TRUE)
 
+counts <- emails %>% 
+  group_by(Day) %>%
+  tally()
+
+average_recipients <- emails %>%
+  group_by(Client) %>%
+  summarise(recipientList = median(`Total Recipients`))
+
+average_recipients$Size <- ifelse(average_recipients$recipientList >= 2500, "Large", "Small")
+
+average_recipients <- subset( average_recipients, select = -recipientList )
+
+emails <- left_join(emails, average_recipients, by = 'Client')
+
+large <- emails %>% filter(Size == 'Large')
+small <- emails %>% filter(Size == 'Small')
+
+countsL <- large %>% 
+    group_by(Client) %>%
+    summarize(Count = n())
+
+countsS <- small %>% 
+    group_by(Client) %>%
+    summarize(Count = n())
+
+countsSL <- full_join(countsS, countsL, by = 'Client')
+
 emailsMF <- emails %>% filter(Day != 'Sunday')
-emailsS <- emails %>% filter(Day == 'Sunday')
-emailsW <- emails %>% filter(Day == 'Wednesday')
 
 countsMF <- emailsMF %>% 
   group_by(Day) %>%
   tally()
 
-counts <- emails %>% 
-  group_by(Day) %>%
-  tally()
+average_recipients <- emails %>%
+  group_by(Client) %>%
+  summarise(recipientList = median(`Total Recipients`))
 
-emails$Size <- ifelse(emails$`Total Recipients` >= 2500, "Large", "Small")
+average_recipients$Size <- ifelse(average_recipients$recipientList >= 2500, "Large", "Small")
 ```
 
 # Introduction
 
-This project analyzes several statistics of 645 email campaigns sent out by clients of Endowment Development Services since 2010.
+This report analyzes several statistics of 645 email campaigns including over 1.5 million emails sent out by 59 nonprofit organizations represented by Endowment Development Services since 2010.
 
-```{r, warning = FALSE, message = FALSE}
+# Size
+
+Nonprofit organizations sizes within these data vary wildly. Some have list sizes of just 50, while others have list sizes of almost 30,000. The average list size is only 2,473. Using 2,500 as an arbitrary benchmark between small and large, among the 59 nonprofit organizations represented, 27 of them are considered large and 32 of them are small. More statistics are in the table below.
+
+| Size  | Count | Average List Size | Average Open Rate | Average Click Rate | Average Bounce Rate |
+|:----------:|:----------:|:----------:|:----------:|:----------:|:----------:|
+|  All  |  59   |       2473        |      34.43%       |       2.86%        |        7.42%        |
+| Large |  27   |       5170        |      34.44%       |       1.56%        |        6.88%        |
+| Small |  32   |       1101        |      34.43%       |       3.52%        |        6.98%        |
+
+Looking at the table, the results do not appear to be significantly different. Performing a Chi-Square Test For Homogeneity confirms it. There is not a statistically significant difference between large and small list sizes in open rate, click rate, or bounce rate.
+
+# Day of the Week
+
+Once work on an email campaign is finished, perhaps the biggest question faced is when to send it. Below is a side-by-side box and whisker plot of the open rate plotted by day of the week. 
+
+```{r message=FALSE, warning=FALSE}
+#| fig.cap="Open Rate by Day of the Week",
+latex_options = c("HOLD_position")
+ggplot(data=emailsMF, mapping=aes(x=Day, y=`Open Rate`, fill = Day))+
+  geom_boxplot(fill = c('#003a5d', '#0091b3', '#003a5d', '#0091b3', '#003a5d'))+
+  theme_ipsum(axis_title_size = 12) +
+    theme(
+      legend.position="none",
+    )+
+  labs(title = 'Open Rate by Day of the Week')+
+  geom_text(data = countsMF,
+            aes(Day, Inf, label = n), vjust = 1)+
+  stat_summary(fun = median, geom = "crossbar", width = .75, color = "#a9ad00", size = .4)+
+  stat_summary(fun = median, geom = "text", aes(label = paste0(round(..y.., 2), "%")), 
+               position = position_dodge(width = 0.75), vjust = -0.5, color = "white")
+```
+
+This visualization reveals that not all days are created equal. Unfortunately, there was not enough data on Saturday or Sunday, so they were excluded. Friday and Tuesday seem to be the best days to send campaigns, and Wednesday and Thursday are the worst days. This relationship is statistically significant. 
+
+```{r message=FALSE, warning=FALSE}
 emailsBC <- subset(emailsMF, Covid == "Pre-covid")
 emailsAC <- subset(emailsMF, Covid == "Post-covid")
 
@@ -384,30 +447,33 @@ keywords <- do.call("rbind", list(haveGift, haveLegacy, haveEasy, haveYou, haveI
 countsKeywords <- keywords %>% 
   group_by(Keyword) %>%
   tally()
+
+techniques <- emails %>% filter(`Product Type` == 'Techniques')
+
+topics <- emails %>% 
+  group_by(Topic) %>%
+  filter(n() >= 15)
+
+countsTopics <- topics %>% 
+  group_by(Topic) %>%
+  tally()
+
+countsTechniques <- techniques %>% 
+  group_by(Day) %>%
+  tally()
+
+countsTechniques2 <- techniques %>% 
+  group_by(Day, Covid) %>%
+  tally()
 ```
 
 ```{r plots, warning = FALSE, message = F}
-ggplot(data=emailsMF, mapping=aes(x=Day, y=`Open Rate`, fill = Day))+
-  geom_boxplot(fill = c('#003a5d', '#0091b3', '#003a5d', '#0091b3', '#003a5d'))+
-  theme_ipsum(axis_title_size = 12) +
-    theme(
-      legend.position="none",
-      
-    )+
-  labs(title = 'Open Rate by Day of the Week')+
-  geom_text(data = countsMF,
-            aes(Day, Inf, label = n), vjust = 1)+
-  stat_summary(fun = median, geom = "crossbar", width = .75, color = "#a9ad00", size = .4)+
-  stat_summary(fun = median, geom = "text", aes(label = paste0(round(..y.., 2), "%")), 
-               position = position_dodge(width = 0.75), vjust = -0.5, color = "white")
-
 emailsMF %>%
   ggplot(aes(Day, `Open Rate`, fill = Day,))+
   geom_boxplot(fill = c('#003a5d', '#0091b3', '#003a5d', '#0091b3', '#003a5d', '#003a5d', '#0091b3', '#003a5d', '#0091b3', '#003a5d'))+
   theme_ipsum(axis_title_size = 12) +
     theme(
       legend.position="none",
-      ,
       axis.text.x = element_text(angle = 90, hjust=1)
     )+
   labs(title = 'Open Rate by Day of the Week Relative to COVID-19')+
@@ -423,9 +489,8 @@ ggplot(data=emails, mapping=aes(x=`Subject Length`, y=`Open Rate`))+
   theme_ipsum(axis_title_size = 12) +
     theme(
       legend.position="none",
-      
     )+
-  geom_smooth(method=lm,se=FALSE, color = '#003a5d')+
+  geom_smooth(method=loess,se=FALSE, color = '#003a5d')+
   labs(title = 'Open Rate by Subject Length',
        x = 'Subject Length (characters)')
 
@@ -576,4 +641,49 @@ keywords %>%
 modelK <- lm(`Open Rate` ~ Keyword, keywords)
 anovaK <- anova(modelK)
 #p = 0.0001408233
+
+techniques %>%
+  ggplot(aes(Day, `Open Rate`, fill = Day))+
+  geom_boxplot(fill = c('#003a5d', '#0091b3', '#003a5d', '#0091b3', '#003a5d'))+
+  geom_text(data = countsTechniques,
+            aes(Day, Inf, label = n), vjust = 1)+
+  theme_ipsum()+
+  labs(title = 'Open Rate by Day of the Week for Technique Emails')+
+  theme(legend.position="none")+
+  stat_summary(fun = median, geom = "crossbar", width = .75, color = "#a9ad00", size = .4)+
+  stat_summary(fun = median, geom = "text", aes(label = paste0(round(..y.., 2), "%")), 
+               position = position_dodge(width = 0.75), vjust = -0.5, color = "white")
+
+techniques %>%
+  ggplot(aes(Day, `Open Rate`, fill = Day,))+
+  geom_boxplot(fill = c('#003a5d', '#0091b3', '#003a5d', '#0091b3', '#003a5d', '#003a5d', '#0091b3', '#003a5d', '#0091b3', '#003a5d'))+
+  theme_ipsum(axis_title_size = 12) +
+    theme(
+      legend.position="none",
+      axis.text.x = element_text(angle = 90, hjust=1)
+    )+
+  labs(title = 'Open Rate by Day of the Week Relative to COVID-19 for Technique Emails')+
+  facet_wrap( ~ Covid)+
+  geom_text(data = countsTechniques2,
+            aes(Day, Inf, label = n), vjust = 1)+
+  stat_summary(fun = median, geom = "crossbar", width = .75, color = "#a9ad00", size = .4)+
+  stat_summary(fun = median, geom = "text", aes(label = paste0(round(..y.., 1), "%")),
+               position = position_dodge(width = 0.75), vjust = -0.5, color = "white")
+  
+     
+topics %>%
+  ggplot(aes(x = reorder(Topic, `Open Rate`, FUN = median), y = `Open Rate`, fill = Topic))+
+  geom_boxplot(fill = c('#003a5d', '#0091b3', '#003a5d', '#0091b3', '#003a5d', '#0091b3', '#003a5d', '#0091b3', '#003a5d', '#0091b3', '#003a5d'))+
+  theme_ipsum()+
+  theme(axis.text.x = element_text(angle = 90, hjust=1),
+        legend.position = 'none')+
+  labs(title = 'Open Rate by Topic',
+       x = 'Topic')+
+  geom_text(data = countsTopics,
+            aes(Topic, Inf, label = n), vjust = 1)+
+  stat_summary(fun = median, geom = "crossbar", width = .75, color = "#a9ad00", size = .4)+
+  stat_summary(fun = median, geom = "text", aes(label = paste0(round(..y.., 1), "%")),
+               position = position_dodge(width = 0.75), vjust = -0.5, color = "white")
+
+
 ```
