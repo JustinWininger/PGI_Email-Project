@@ -4,7 +4,7 @@ author: "Justin Wininger"
 date: "`r Sys.Date()`"
 output: word_document
 editor_options: 
-  chunk_output_type: inline
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE, warning = FALSE, message = F}
@@ -417,14 +417,6 @@ countsKeywords <- keywords %>%
 
 techniques <- emails %>% filter(`Product Type` == 'Professional Advisor Newsletter')
 
-topics <- emails %>% 
-  group_by(Topic) %>%
-  filter(n() >= 15)
-
-countsTopics <- topics %>% 
-  group_by(Topic) %>%
-  tally()
-
 countsTechniques <- techniques %>% 
   group_by(Day) %>%
   tally()
@@ -463,8 +455,6 @@ Looking at the table, the results do not appear to be significantly different. P
 Once work on an email campaign is finished, perhaps the biggest question faced is when to send it. Below is a side-by-side box and whisker plot of the open rate plotted by day of the week. The lime colored line represents the median open rate for each day. The white text is that median.
 
 ```{r message=FALSE, warning=FALSE}
-#| fig.cap="Open Rate by Day of the Week",
-latex_options = c("HOLD_position")
 ggplot(data=emailsMF, mapping=aes(x=Day, y=`Open Rate`, fill = Day))+
   geom_boxplot(fill = c('#003a5d', '#0091b3', '#003a5d', '#0091b3', '#003a5d'))+
   theme_ipsum(axis_title_size = 12) +
@@ -651,15 +641,82 @@ Interestingly, when discussing click rate, some keywords perform equally well/po
 
 # Topics
 
-Email campaigns 
+Email campaigns cover a wide range of topics. From new tax laws to cryptocurrency, almost anything a potential donor needs has been sent out. Some topics perform better than others, though. Below is a boxplot of open rate by topic. It is important to note that several topics like the aforementioned cryptocurrency, revocable gifts, bargain sales, and many others were omitted because of a lack of sufficient data. Again, the red line is the median open rate for all emails.
+
+```{r}
+topics <- emails %>% 
+  group_by(Topic) %>% filter(n() >= 10)
+
+countsTopics <- topics %>% 
+  group_by(Topic) %>%
+  tally()
+
+topics %>%
+  ggplot(aes(x = reorder(Topic, `Open Rate`, FUN = median), y = `Open Rate`, fill = Topic))+
+  geom_boxplot(fill = c('#003a5d', '#0091b3', '#003a5d', '#0091b3', '#003a5d','#0091b3', '#003a5d', '#0091b3', '#003a5d', '#0091b3', '#003a5d', '#0091b3', '#003a5d', '#0091b3'))+
+  theme_ipsum(axis_title_size = 12)+
+  theme(axis.text.x = element_text(angle = 90, hjust=1),
+        legend.position = 'none')+
+  labs(title = 'Open Rate by Topic',
+       x = 'Topic')+
+  geom_text(data = countsTopics,
+            aes(Topic, Inf, label = n), vjust = 1)+
+  stat_summary(fun = median, geom = "crossbar", width = .75, color = "#a9ad00", size = .4)+
+  stat_summary(fun = median, geom = "text", aes(label = paste0(round(..y.., 1), "%")),
+               position = position_dodge(width = 0.75), vjust = -0.5, color = "white")+
+  geom_hline(yintercept = median(emails$`Open Rate`), color = 'red', size = 1)
+```
+
+Campaigns centered on Life Stages perform very well, while those focused on Annuities perform very poorly. Life Stages perform so exceptionally well, one might assume there must be some error. There is not, although there is also no good explanation for why they do so well. To maximize open rate, send campaigns about Life Stages, Tax Time, Retirement Assets, or other topics toward the top of the list. 
+
+Open rate is perhaps not the best metric to gauge which topic is the best. Topics often cannot be discerned from the subject line. It is better, therefore, to look at click rate instead. TCJA leads the pack in click rate, with an astonishing 9.82%. Life Stages falls all the way to seventh. The three best topics for open rate are TCJA, Real Estate, and Trusts. The three worst are Annuities, Retirement Assets, and IRA. 
 
 # Product Type
 
+Email campaigns are not all the same length. Some are the size of a postcard, while others are more than 13 pages long. How do the different products compare in open rate? Does the length of the email affect click rate? Below is a boxplot of the open rates of all products, sorted left to right by length of the campaign. 
 
+```{r, warning =F, message =F}
+emails <- emails %>% 
+  mutate(
+    `Product Type` = fct_recode(as.factor(`Product Type`),
+                      `Donor-Centric\nNewsletter` = "Donor-Centric Newsletter",
+                      `Donor-Centric\nPostcard` = "Donor-Centric Postcard",
+                      `Donor-Centric\nTarget Mailer` = "Donor-Centric Target Mailer",
+                      `Professional\nAdvisor\nNewsletter` = "Professional Advisor Newsletter")
+  )
+
+product_order <- c("Donor-Centric\nPostcard", "Donor-Centric\nTarget Mailer", "Visions", "Donor-Centric\nNewsletter", "Professional\nAdvisor\nNewsletter")
+emails$`Product Type` <- factor(emails$`Product Type`, levels = product_order, ordered = TRUE)
+
+#aes(x = reorder(`Product Type`, `Open Rate`, FUN = median), y = `Open Rate`, fill = `Product Type`)
+
+emails %>%
+  ggplot(aes(`Product Type`, `Open Rate`, fill = `Product Type`))+
+  geom_boxplot(fill = c('#003a5d', '#0091b3', '#003a5d', '#0091b3', '#003a5d'))+
+  theme_ipsum(axis_title_size = 12)+
+  theme(
+        legend.position = 'none')+
+  labs(title = 'Open Rate by Product Type',
+       x = 'Product Type')+
+  stat_summary(fun = median, geom = "crossbar", width = .75, color = "#a9ad00", size = .4)+
+  stat_summary(fun = median, geom = "text", aes(label = paste0(round(..y.., 1), "%")),
+               position = position_dodge(width = 0.75), vjust = -0.5, color = "white")
+
+emails$`Product Type` <- gsub("Visions", "Donor-Centric\nNewsletter", emails$`Product Type`)
+
+product_order <- c("Donor-Centric\nPostcard", "Donor-Centric\nTarget Mailer", "Donor-Centric\nNewsletter", "Professional\nAdvisor\nNewsletter")
+emails$`Product Type` <- factor(emails$`Product Type`, levels = product_order, ordered = TRUE)
+
+fs <- favstats(`Click Rate` ~ `Product Type`, data = emails)
+```
+
+The Visions product does significantly better than all other products. The length of a campaign should have no affect on the open rate, which is seen pretty clearly. The longest and shortest have a very similar open rate. A potential donor cannot see the length of the email before opening it, so this lack of a relationship is to be expected.
+
+Length should play a clear part in click rate, however. Most donors will not scroll through 13 pages to click on a link or button. Interestingly enough, however, the longest product, Professional Advisor newsletters, have the highest click rate. The shortest product, Donor-Centric postcards have the second lowest click rate. Clearly, length does not affect click rate. 
 
 ## Professional Advisor Newsletter
 
-A product some nonprofits like to offer a professional advisor newsletter. These are essentially tips and tricks for charitable giving officers and people involved in the field. They do not get sent to donors. Below is a table comparing techniques versus the rest of the email campaigns.
+A specific product some nonprofits like to offer a Professional Advisor newsletter. These are essentially tips and tricks for charitable giving officers and people involved in the field. They do not get sent to donors. Below is a table comparing Professional Advisor newsletters versus the rest of the email campaigns.
 
 ```{r warning = F, message = F}
 techs <- emails %>% 
@@ -677,10 +734,10 @@ chisqT <- chisq.test(techs)
 
 | Product Type | Median Open Rate | Median Click Rate | Median Bounce Rate |
 |:------------:|:----------------:|:-----------------:|:------------------:|
-|  Techniques  |     29.0155      |      5.9803       |       5.4954       |
+|  Professional Advisor newsletter  |     29.0155      |      5.9803       |       5.4954       |
 |  All Others  |     36.1290      |      0.7366       |       4.2717       |
 
-These results seem very different, and a Chi-Sqaured test confirms it. Professional Advisor Newsletters are statistically significantly different from all other product types. They have a significantly lower open rate, but a significantly higher click rate. The bounce rate is higher, but not significantly.
+These results seem very different, and a Chi-Squared test confirms it. Professional Advisor Newsletters are statistically significantly different from all other product types. They have a significantly lower open rate, but a significantly higher click rate. The bounce rate is higher, but not significantly.
 
 ### Day of the Week
 
@@ -733,14 +790,14 @@ comparison <- rbind(comparison1, comparison2)
 
 comparison <- comparison[,-6]
 
-chisq.test(comparison)
+chisqC <- chisq.test(comparison)
 ```
 
-Friday remains the best day to send, except its lead has grown substantially. The most surprising part of this plot is how much Wednesday and Thursday rose. Monday still remains among the worst days to send emails. In general, though, the only mistake one could make is sending a campaign on a Monday. Tuesday through Friday are all very similar in open rate. The relationship between open rate and day of the week for just techniques and the relationship between open rate and day for all products is statistically significantly different. Regardless, sending on Friday no matter the prodcut seems to be the best bet. Monday, however, is the best day to get clicks. Thursday is the worst day, and Friday is the third best. 
+Friday remains the best day to send, except its lead has grown substantially. The most surprising part of this plot is how much Wednesday and Thursday rose. Monday still remains among the worst days to send emails. In general, though, the only mistake one could make is sending a campaign on a Monday. Tuesday through Friday are all very similar in open rate. The relationship between open rate and day of the week for just Professional Advisor newsletters and the relationship between open rate and day for all products is statistically significantly different. Regardless, sending on Friday no matter the product seems to be the best bet. Monday, however, is the best day to get clicks. Thursday is the worst day, and Friday is the third best. 
 
 #### COVID-19
 
-Technique email campaigns are also affected by COVID. Below is a boxplot showing the relationship between open rate and day of the week for techniques by COVID.
+Professional Advisor newsletter email campaigns are also affected by COVID. Below is a boxplot showing the relationship between open rate and day of the week for Professional Advisor newsletters by COVID.
 
 ```{r}
 techniques %>%
@@ -769,10 +826,10 @@ techPC <- emailsMF %>%
   )
 ```
 
-This visualization does not necessarily present any new information, but it expands on the last one. In general, after COVID, Fridays and Tuesdays are the best days to send campaigns, and Monday is still the worst. Fridays also have the highest click rate, with Monday in second place. It is relatively clear that the only day one should send techniques is Friday.
+This visualization does not necessarily present any new information, but it expands on the last one. In general, after COVID, Fridays and Tuesdays are the best days to send campaigns, and Monday is still the worst. Fridays also have the highest click rate, with Monday in second place. It is relatively clear that the only day one should send Professional Advisor newsletters is Friday.
 
 
-```{r plots, warning = FALSE, message = F, include=T}
+```{r plots, warning = FALSE, message = F, include=F}
 both2 %>%
   ggplot(aes(Source, `Open Rate`, fill = Source))+
   geom_boxplot(fill = c('#003a5d', '#0091b3'))+
@@ -827,39 +884,4 @@ emails %>%
 modelD <- lm(`Open Rate` ~ Duplicate, data = emails)
 anovaD <- anova(modelD)
 #p = 0.7162413
-     
-topics %>%
-  ggplot(aes(x = reorder(Topic, `Open Rate`, FUN = median), y = `Open Rate`, fill = Topic))+
-  geom_boxplot(fill = c('#003a5d', '#0091b3', '#003a5d', '#0091b3', '#003a5d', '#0091b3', '#003a5d', '#0091b3', '#003a5d', '#0091b3', '#003a5d'))+
-  theme_ipsum(axis_title_size = 12)+
-  theme(axis.text.x = element_text(angle = 90, hjust=1),
-        legend.position = 'none')+
-  labs(title = 'Open Rate by Topic',
-       x = 'Topic')+
-  geom_text(data = countsTopics,
-            aes(Topic, Inf, label = n), vjust = 1)+
-  stat_summary(fun = median, geom = "crossbar", width = .75, color = "#a9ad00", size = .4)+
-  stat_summary(fun = median, geom = "text", aes(label = paste0(round(..y.., 1), "%")),
-               position = position_dodge(width = 0.75), vjust = -0.5, color = "white")
-
-emails <- emails %>% 
-  mutate(
-    `Product Type` = fct_recode(as.factor(`Product Type`),
-                      `Donor-Centric\nNewsletter` = "Donor-Centric Newsletter",
-                      `Donor-Centric\nPostcard` = "Donor-Centric Postcard",
-                      `Donor-Centric\nTarget Mailer` = "Donor-Centric Target Mailer",
-                      `Professional\nAdvisor\nNewsletter` = "Professional Advisor Newsletter")
-  )
-
-emails %>%
-  ggplot(aes(x = reorder(`Product Type`, `Open Rate`, FUN = median), y = `Open Rate`, fill = `Product Type`))+
-  geom_boxplot(fill = c('#003a5d', '#0091b3', '#003a5d', '#0091b3',  '#003a5d'))+
-  theme_ipsum(axis_title_size = 12)+
-  theme(
-        legend.position = 'none')+
-  labs(title = 'Open Rate by Product Type',
-       x = 'Product Type')+
-  stat_summary(fun = median, geom = "crossbar", width = .75, color = "#a9ad00", size = .4)+
-  stat_summary(fun = median, geom = "text", aes(label = paste0(round(..y.., 1), "%")),
-               position = position_dodge(width = 0.75), vjust = -0.5, color = "white")
 ```
