@@ -431,12 +431,11 @@ emails <- emails %>%
   ungroup()
 
 emails$Techniques <- ifelse(emails$`Product Type` == "Techniques", "Yes", "No")
-
 ```
 
 # Introduction
 
-This report analyzes several statistics of 645 email campaigns including over 1.5 million emails sent out by 59 nonprofit organizations represented by Endowment Development Services since 2010. 
+This report analyzes several statistics of 645 email campaigns including over 1.5 million emails sent out by 59 nonprofit organizations represented by Endowment Development Services since 2010.
 
 When comparing two or more groups, this report will use the median instead of the mean or average. The median, being the point where there are equal amounts of observations larger and smaller, is more resistant to outliers than the mean and is therefore a much better representation of the "typical" observation. This report will mainly observe the open rate and click rate of these various email campaigns. Because it is physically impossible for either one to be negative, both will be skewed to the right. Because of this, using the mean would result in inflated and unrealistic claims. Using the median, therefore, is the best choice.
 
@@ -587,7 +586,7 @@ anovaLC <- anova(modelLC)
 #p = 2.27148e-06
 ```
 
-The boxplots alone reveal that ending with a period seems to be significantly better. The violin plot tells the same story, but to an even greater extent. The violin shows the distribution of observations. Where the violin is wider, there are more observations. It is very evident from this plot that ending the subject line with a period is significantly better. Plots alone are not enough, though, to gaurantee statistical significance. Luckily, Analysis of Variance agrees with the plots and returns a statistically significant result. Naturally, however, click rates show the opposite relationship. Like previously stated though, click rates do not really matter in this context.
+The boxplots alone reveal that ending with a period seems to be significantly better. The violin plot tells the same story, but to an even greater extent. The violin shows the distribution of observations. Where the violin is wider, there are more observations. It is very evident from this plot that ending the subject line with a period is significantly better. Plots alone are not enough, though, to guarantee statistical significance. Luckily, Analysis of Variance agrees with the plots and returns a statistically significant result. Naturally, however, click rates show the opposite relationship. Like previously stated though, click rates do not really matter in this context.
 
 ## Duplicate Subjects
 
@@ -598,7 +597,7 @@ Email campaigns sent by the same nonprofit can go one of two routes: unique or i
 |    No     |  475  |      33.07%      |       0.91%       |       4.17%        |
 |    Yes    |  135  |      34.06%      |       1.40%       |       6.00%        |
 
-Duplicate subject lines appear to have marginally better statistics. Both their open and click rates are higher, but the bounce rate is higher as well. This relationship is weak at best, and proves to be statistically insignificant after a Chi-Squared test. However, just because a result is not statistically significant, does not mean the observed difference is nonexistent. In general, duplicate subjects still perform better.
+Duplicate subject lines appear to have marginally better statistics. Both their open and click rates are higher, but the bounce rate is higher as well. This relationship is weak at best, and proves to be statistically insignificant after a Chi-Squared test. However, just because a result is not statistically significant, does not mean the observed difference is nonexistent. In general, duplicate subjects perform better.
 
 ```{r warning = F, message = F}
 dupes <- emails %>% 
@@ -671,7 +670,7 @@ Campaigns centered on Life Stages perform very well, while those focused on Annu
 
 Open rate is perhaps not the best metric to gauge which topic is the best. Topics often cannot be discerned from the subject line. It is better, therefore, to look at click rate instead. TCJA leads the pack in click rate, with an astonishing 9.82%. Life Stages falls all the way to seventh. The three best topics for open rate are TCJA, Real Estate, and Trusts. The three worst are Annuities, Retirement Assets, and IRA.
 
-If a charitable giving officer needs his next email campaign to do well, he should send one about Life Stages or TCJA, depending on whether he wants opens or clicks. However, this is a one-time-use only. He cannot send every single campaign about one subject. 
+If a charitable giving officer needs his next email campaign to do well, he should send one about Life Stages or TCJA, depending on whether he wants opens or clicks. However, this is a one-time-use only. He cannot send every single campaign about one subject.
 
 # Product Type
 
@@ -732,12 +731,13 @@ techs <- emails %>%
 techs <- techs[,-1]
 
 chisqT <- chisq.test(techs)
+#p ≈ 0
 ```
 
-|          Product Type           | Median Open Rate | Median Click Rate | Median Bounce Rate |
-|:---------------:|:----------------:|:-----------------:|:-----------------:|
-| Professional Advisor newsletter |     29.0155      |      5.9803       |       5.4954       |
-|           All Others            |     36.1290      |      0.7366       |       4.2717       |
+|          Product Type           | Count | Median Open Rate | Median Click Rate | Median Bounce Rate |
+|:-------------:|:-------------:|:-------------:|:-------------:|:-------------:|
+| Professional Advisor newsletter |  149  |      29.02%      |       5.98%       |       5.50%        |
+|           All Others            |  461  |      36.13%      |       0.74%        |       4.27%        |
 
 These results seem very different, and a Chi-Squared test confirms it. Professional Advisor Newsletters are statistically significantly different from all other product types. They have a significantly lower open rate, but a significantly higher click rate. The bounce rate is higher, but not significantly.
 
@@ -834,8 +834,8 @@ This visualization does not necessarily present any new information, but it expa
 
 To effectively decide how to maximize either open or click rate, one only needs to follow the steps in the table below.
 
-| Maximize  | Day of Week | Type of Punctuation | Last Character |    Topic    |     Product Type     |
-|:----------:|:-----------:|:-------------------:|:--------------:|:-----------:|:--------------------:|
+|  Maximize  | Day of Week | Type of Punctuation | Last Character |    Topic    |     Product Type     |
+|:----------:|:----------:|:----------:|:----------:|:----------:|:----------:|
 | Open Rate  |   Friday    |       Period        |     Period     | Life Stages |       Visions        |
 | Click Rate |  Thursday   |        Dash         | No Punctuation |    TCJA     | Professional Advisor |
 
@@ -851,7 +851,6 @@ crMax <- emails %>%
   filter(Day == 'Thursday' & Hyphen =='Yes' & lastChar == 'No Punctuation' & Topic == 'TCJA' & `Product Type` == 'Professional\nAdvisor\nNewsletter
 ')
 ```
-
 
 ```{r plots, warning = FALSE, message = F, include=F}
 both2 %>%
@@ -880,7 +879,7 @@ emails %>%
     theme(
       legend.position="none",
     )+
-  labs(title = "Open Rate by Company Size")+
+  labs(title = "Open Rate by Charity Size")+
   geom_text(data = countsSize,
             aes(Size, Inf, label = n), vjust = 1)+
   stat_summary(fun = median, geom = "crossbar", width = .75, color = "#a9ad00", size = .4)+
