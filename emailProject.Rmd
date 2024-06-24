@@ -743,7 +743,7 @@ chisqT <- chisq.test(techs)
 | Professional Advisor newsletter |  149  |      29.02%      |          23.08%           |       5.50%        |
 |           All Others            |  461  |      36.13%      |           2.15%           |       4.27%        |
 
-These results seem very different, and a Chi-Squared test confirms it. Professional Advisor Newsletters are statistically significantly different from all other product types. They have a significantly lower open rate, but a significantly higher click rate. The bounce rate is higher, but not significantly.
+These results seem incredibly different, and a Chi-Squared test confirms it. Professional Advisor Newsletters are statistically significantly different from all other product types. They have a significantly lower open rate, but a significantly higher click rate. The bounce rate is higher, but not significantly.
 
 ### Day of the Week
 
