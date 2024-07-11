@@ -424,11 +424,11 @@ When comparing two or more groups, this report will use the median instead of th
 
 Nonprofit organization sizes within these data vary wildly. Some have list sizes of just 50, while others have list sizes of almost 30,000. The average list size is 2,473. Using 2,500 as an arbitrary benchmark between small and large, among the 59 nonprofit organizations represented, 27 of them are considered large and 32 of them are small. More statistics are in the table below.
 
-| Size  | Count | Median List Size | Median Open Rate | Median Click-to-Open Rate |
-|:----------:|:----------:|:----------:|:----------:|:----------:|
-|  All  |  59   |       1403       |      33.27%      |           3.09%           |
-| Large |  27   |       4219       |      33.28%      |           2.56%           |
-| Small |  32   |       838        |      32.99%      |           3.98%           |
+|  Size | Count | Median List Size | Median Open Rate | Median Click-to-Open Rate |
+|--------------:|--------------:|--------------:|--------------:|--------------:|
+|   All |    59 |             1403 |           33.27% |                     3.09% |
+| Large |    27 |             4219 |           33.28% |                     2.56% |
+| Small |    32 |              838 |           32.99% |                     3.98% |
 
 Looking at the table, the results do not appear to be significantly different. Performing a Chi-Square Test for Homogeneity confirms it. There is not a statistically significant difference between large and small list sizes in open rate or click-to-open rate.
 
@@ -497,9 +497,9 @@ daysC <- daysC %>%
   pivot_wider(id_cols = Covid, names_from = Day, values_from = CTOR)
 ```
 
-The observed shift makes sense. The pandemic forced people to digitize. A direct result of this digitization is that people spent more time working on their computers, which gives them more opportunities to check their emails. Median open rates increased, but so did the variability. This is represented by the size of the box. The bottom of the box is called the first quartile and it represents the 25th percentile. The top of the box is called the third quartile and is the 75th percentile. Half of all observations, therefore, are contained within the box. Because the post-COVID boxes are taller, the data is more variable and has a wider range. Looking at only post-COVID, the best days to send campaigns for open rates are still Tuesday and Friday. However, Monday is now much better than it was. 
+The observed shift makes sense. The pandemic forced people to digitize. A direct result of this digitization is that people spent more time working on their computers, which gives them more opportunities to check their emails. Median open rates increased, but so did the variability. This is represented by the size of the box. The bottom of the box is called the first quartile and it represents the 25th percentile. The top of the box is called the third quartile and is the 75th percentile. Half of all observations, therefore, are contained within the box. Because the post-COVID boxes are taller, the data is more variable and has a wider range. Looking at only post-COVID, the best days to send campaigns for open rates are still Tuesday and Friday. However, Monday is now much better than it was.
 
-Examining this relationship further, below is a plot of click-to-open rates by day of the week. 
+Examining this relationship further, below is a plot of click-to-open rates by day of the week.
 
 ```{r}
 emailsMF %>%
@@ -517,7 +517,6 @@ emailsMF %>%
   stat_summary(fun = median, geom = "text", aes(label = paste0(round(..y.., 1), "%")),
                position = position_dodge(width = 0.75), vjust = -0.5, color = "white")
 ```
-
 
 The first thing one might observe from this visualization is all the outliers. Unfortunately, this is a common theme with click-to-open rate. They are important to keep in mind, but ultimately less significant than the box itself. As seen in the visualization, COVID made click-to-open rates decrease. The median click-to-open rate before the pandemic was 5.39%, but it is 2.40% after the pandemic. The days with the best click-to-open rates post-pandemic are Wednesday and Thursday, and the worst days are Monday and Friday. Once again, because the best days for open and click-to-open rate differ, it is up to the individual which is more important.
 
@@ -562,9 +561,9 @@ chisqP <- chisq.test(punctuation)
 ```
 
 | Punctuation | Count | Median Open Rate | Median Click-to-Open Rate |
-|:-----------:|:-----:|:----------------:|:-------------------------:|
-|     No      |  178  |      34.69%      |           2.03%           |
-|     Yes     |  432  |      32.84%      |           4.17%           |
+|------------:|------:|-----------------:|--------------------------:|
+|          No |   178 |           34.69% |                     2.03% |
+|         Yes |   432 |           32.84% |                     4.17% |
 
 The presence of punctuation does not significantly affect open or click-to-open rate. However, just like the days of the week, one must choose whether they want a higher open or click-to-open rate. Subject lines with no punctuation have a higher open rate, but subject lines with punctuation have a higher click-to-open rate.
 
@@ -643,9 +642,9 @@ The boxplots alone reveal that ending with a period seems to be significantly be
 Email campaigns sent by the same nonprofit can go one of two routes: unique or identical subjects. Some nonprofits will send a new, fresh subject line for every campaign. Others will repeatedly send the same or very similar subject lines. Both have their merits, but also shortcomings. Below is a table analyzing key statistics for duplicate subject lines.
 
 | Duplicate | Count | Median Open Rate | Median Click-to-Open Rate |
-|:---------:|:-----:|:----------------:|:-------------------------:|
-|    No     |  475  |      33.07%      |           2.60%           |
-|    Yes    |  135  |      34.06%      |           4.55%           |
+|----------:|------:|-----------------:|--------------------------:|
+|        No |   475 |           33.07% |                     2.60% |
+|       Yes |   135 |           34.06% |                     4.55% |
 
 Duplicate subject lines appear to have marginally better statistics. Both their open and click-to-open rates are higher. This relationship is weak at best, and proves to be statistically insignificant after a Chi-Squared test. However, just because a result is not statistically significant, does not mean the observed difference is nonexistent. In general, duplicate subjects perform better.
 
@@ -705,7 +704,6 @@ keywords %>%
        x = 'Keyword')
 ```
 
-
 Give is second to last in open rate and sixth to last in click-to-open rate. However, gift, a very similar word, has the highest click-to-open rate, but help has the second lowest. Like before, though, click-to-open rates are much less important when observing subject lines.
 
 # Topics
@@ -755,8 +753,7 @@ topics %>%
   stat_summary(fun = median, geom = "crossbar", width = .75, color = "#a9ad00", size = .4)
 ```
 
-
-TCJA leads the pack in click-to-open rate, with an astonishing 29.756098%. Life Stages falls all the way to seventh. The three best topics for open rate are TCJA, Real Estate, and Trusts. The three worst are Wills, IRA and Retirement Assets. However, every topic after donor-advisory-funds seem to have a minuscule difference. It is not fair to say, for example, that Annuities is twice as good as Retirement Assets just because Annuities is eighth and Retirement assets is fourteenth. 
+TCJA leads the pack in click-to-open rate, with an astonishing 29.756098%. Life Stages falls all the way to seventh. The three best topics for open rate are TCJA, Real Estate, and Trusts. The three worst are Wills, IRA and Retirement Assets. However, every topic after donor-advisory-funds seem to have a minuscule difference. It is not fair to say, for example, that Annuities is twice as good as Retirement Assets just because Annuities is eighth and Retirement assets is fourteenth.
 
 If a charitable giving officer needs their next email campaign to do well, they should send one about Life Stages or TCJA, depending on whether they want opens or clicks. However, this is a one-time-use only. The officer cannot send every single campaign about one subject.
 
@@ -829,10 +826,10 @@ chisqT <- chisq.test(techs)
 #p ≈ 0
 ```
 
-|          Product Type           | Count | Median Open Rate | Median Click-to-Open Rate |
-|:-------------:|:-------------:|:-------------:|:-------------:|
-| Professional Advisor Newsletter |  149  |      29.02%      |          23.08%           |
-|           All Others            |  461  |      36.13%      |           2.15%           |
+|                    Product Type | Count | Median Open Rate | Median Click-to-Open Rate |
+|-----------------:|-----------------:|-----------------:|-----------------:|
+| Professional Advisor Newsletter |   149 |           29.02% |                    23.08% |
+|                      All Others |   461 |           36.13% |                     2.15% |
 
 These results seem incredibly different, and a Chi-Squared test confirms it. Professional Advisor Newsletters are statistically significantly different from all other product types. They have a significantly lower open rate, but a significantly higher click-to-open rate.
 
@@ -957,10 +954,10 @@ This visualization does not necessarily present any new information, but it expa
 
 To effectively decide how to maximize either open or click rate, one only needs to follow the steps in the table below.
 
-|  Maximize  | Day of Week | Type of Punctuation | Last Character |    Topic    |     Product Type     |
-|:----------:|:----------:|:----------:|:----------:|:----------:|:----------:|
-| Open Rate  |   Friday    |       Period        |     Period     | Life Stages |       Visions        |
-| Click-to-Open Rate |  Thursday   |        Dash         | No Punctuation |    TCJA     | Professional Advisor |
+|           Maximize | Day of Week | Type of Punctuation | Last Character |       Topic |         Product Type |
+|-----------:|-----------:|-----------:|-----------:|-----------:|-----------:|
+|          Open Rate |      Friday |              Period |         Period | Life Stages |              Visions |
+| Click-to-Open Rate |    Thursday |                Dash | No Punctuation |        TCJA | Professional Advisor |
 
 It is important to realize that even though these perform the best according to the data, picking them all is not a guarantee at success. In fact, none of the email campaigns had every trait listed, for either open or click rate; they all differed at at least one point. In general, though, following the table should maximize either open or click rate.
 
@@ -1026,7 +1023,7 @@ anovaD <- anova(modelD)
 #p = 0.7162413
 ```
 
-```{r click plots, warning = F, message = F, include=T}
+```{r click plots, warning = F, message = F, include=F}
 countsMF <- emailsMF %>% 
   group_by(Day) %>%
   tally()
