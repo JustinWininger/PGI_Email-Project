@@ -8,7 +8,7 @@ editor_options:
 ---
 
 ```{r setup, include=FALSE, warning = FALSE, message = F}
-knitr::opts_chunk$set(echo = FALSE, dpi = 300)
+knitr::opts_chunk$set(echo = FALSE, fig.width = 8, fig.height = 5, dpi = 300)
 remove(list = ls())
 library(readxl)
 library(tidyverse)
@@ -487,6 +487,7 @@ emailsMF %>%
   stat_summary(fun = median, geom = "text", aes(label = paste0(round(..y.., 1), "%")),
                position = position_dodge(width = 0.75), vjust = -0.5, color = "white")
 
+
 daysC <- emails %>% 
   group_by(Day, Covid) %>% 
   summarise(
@@ -805,7 +806,7 @@ emails %>%
   stat_summary(fun = median, geom = "crossbar", width = .75, color = "#a9ad00", size = .4)
 ```
 
-Length should play a clear part in click-to-open rate, however. Most donors will not scroll through several pages to click on a link or button. Interestingly enough, however, the longest product, Professional Advisor newsletters, has the highest click-to-open rate, by a significant margin. This is likely because the only way to read the entire product is to click a link within the email to the full version. The shortest product, Donor-Centric postcards, has the second lowest click-to-open rate. Clearly, length does not significantly affect click-to-open rate.
+Length should play a clear part in click-to-open rate, however. Most donors will not scroll through several pages to click on a link or button. Interestingly enough, however, the longest product, Professional Advisor newsletters, has the highest click-to-open rate, by a significant margin. This is likely because the only way to read the entire product is to click a link within the email to the full version. The second longest product overall, but the longest in one email, Donor-Centric newsletters, have the second highest click-to-open rate. The third highest is the shortest product, Donor-Centric postcards. Clearly, length does not significantly affect click-to-open rate.
 
 ## Professional Advisor Newsletter
 
@@ -952,14 +953,14 @@ This visualization does not necessarily present any new information, but it expa
 
 # Conclusion
 
-To effectively decide how to maximize either open or click rate, one only needs to follow the steps in the table below.
+To effectively decide how to maximize either open or click-to-open rate, one only needs to follow the steps in the table below.
 
 |           Maximize | Day of Week | Type of Punctuation | Last Character |       Topic |         Product Type |
 |-----------:|-----------:|-----------:|-----------:|-----------:|-----------:|
 |          Open Rate |      Friday |              Period |         Period | Life Stages |              Visions |
 | Click-to-Open Rate |    Thursday |                Dash | No Punctuation |        TCJA | Professional Advisor |
 
-It is important to realize that even though these perform the best according to the data, picking them all is not a guarantee at success. In fact, none of the email campaigns had every trait listed, for either open or click rate; they all differed at at least one point. In general, though, following the table should maximize either open or click rate.
+It is important to realize that even though these perform the best according to the data, picking them all is not a guarantee at success. In fact, none of the email campaigns had every trait listed, for either open or click-to-open rate; they all differed at at least one point. In general, though, following the table should maximize either open or click-to-open rate.
 
 Ultimately, however, sending email campaigns is much more of an art than a science. Data and analytics are important to keep in mind, but they absolutely do not tell the whole story. Not everything can be boiled down to numbers and statistics. This report should serve as a baseline on where to start, but not as doctrine.
 
