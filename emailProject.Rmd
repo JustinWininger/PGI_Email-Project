@@ -4,7 +4,7 @@ author: "Justin Wininger"
 date: "`r Sys.Date()`"
 output: word_document
 editor_options: 
-  chunk_output_type: inline
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE, warning = FALSE, message = F}
@@ -913,7 +913,7 @@ techniques %>%
       legend.position="none",
       axis.text.x = element_text(angle = 90, hjust=1)
     )+
-  labs(title = 'Open Rate by Day of the Week Relative to COVID-19 for Professional Advsior Newsletters')+
+  labs(title = 'Open Rate by Day of the Week Relative to COVID-19\nfor Professional Advsior Newsletters')+
   facet_wrap( ~ Covid)+
   stat_summary(fun = median, geom = "crossbar", width = .75, color = "#a9ad00", size = .4)+
   stat_summary(fun = median, geom = "text", aes(label = paste0(round(..y.., 1), "%")),
