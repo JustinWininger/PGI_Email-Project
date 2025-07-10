@@ -78,7 +78,6 @@ countsS <- small %>%
 
 countsSL <- full_join(countsS, countsL, by = 'Client')
 
-emailsMF <- emails %>% filter(Day != 'Sunday' & Day != 'Saturday')
 
 average_recipients <- emails %>%
   group_by(Client) %>%
@@ -97,9 +96,6 @@ size <- subset( size, select = -Size )
 
 chisqS <- chisq.test(size)
 #p = 0.903777
-
-emailsBC <- subset(emailsMF, Covid == "Pre-covid")
-emailsAC <- subset(emailsMF, Covid == "Post-covid")
 
 emails <- emails %>% mutate(`Subject Length` = nchar(Subject))
 
@@ -417,6 +413,8 @@ emails <- emails %>%
    ungroup()
 
 emails$Techniques <- ifelse(emails$`Product Type` == "Professional\nAdvisor\nNewsletter", "Yes", "No")
+
+emailsMF <- emails %>% filter(Day != 'Sunday' & Day != 'Saturday')
 ```
 
 ```{r send to excel}
@@ -883,8 +881,8 @@ Email campaigns are not all the same length. Some are the size of a postcard, wh
 ```{r, warning =F, message =F}
 #aes(x = reorder(`Product Type`, `Open Rate`, FUN = median), y = `Open Rate`, fill = `Product Type`)
 
-emails %>%
-  ggplot(aes(`Product Type`, `Open Rate`, fill = `Product Type`))+
+emailsMF %>%
+  ggplot(aes(`Day`, `Open Rate`, fill = `Day`))+
   geom_boxplot(fill = c('#003a5d', '#0091b3', '#003a5d', '#0091b3', '#003a5d'))+
   theme_ipsum(axis_title_size = 12)+
   theme(
@@ -926,6 +924,45 @@ emails %>%
 
 Length should play a clear part in click rate, however. Most donors will not scroll through several pages to click on a link or button. Interestingly enough, however, the longest product, Professional Advisor newsletters, has the highest click rate, by a significant margin. This is likely because the only way to read the entire product is to click a link within the email to the full version. The second longest product overall, but the longest in one email, Donor-Centric newsletters, has the third highest click rate. The fourth highest is the shortest product, Donor-Centric postcards. Clearly, length does not significantly affect click rate.
 
+## Day of the Week
+
+Different products might have different best days to send. Below is a plot of the median open rate of every product offered by day of the week.
+
+```{r message=F}
+emailsMF <- emailsMF %>%
+   mutate(
+     `Day` = fct_recode(as.factor(`Day`),
+                       `M` = "Monday",
+                       `T` = "Tuesday",
+                       `W` = "Wednesday",
+                       `Th` = "Thursday",
+                       `F` = "Friday"))
+
+tmp <- emailsMF %>% 
+  group_by(Day, `Product Type`) %>% 
+  summarize(n=n(), `Open Rate` = median(`Open Rate`), `Click Rate` = median(`Click Rate`))
+
+emailsMF %>%
+  ggplot(aes(`Day`, `Open Rate`, fill = `Day`))+
+  geom_boxplot(fill = c('#003a5d', '#0091b3', '#003a5d', '#0091b3', '#003a5d','#003a5d', '#0091b3', '#003a5d', '#0091b3', '#003a5d','#003a5d', '#0091b3', '#003a5d', '#0091b3', '#003a5d','#003a5d', '#0091b3', '#003a5d', '#0091b3', '#003a5d','#003a5d', '#0091b3', '#003a5d', '#0091b3', '#003a5d'))+
+  theme_ipsum(axis_title_size = 12)+
+  theme(legend.position = 'none')+
+  labs(title = 'Open Rate by Day by Product Type',
+       x = 'Day')+
+  facet_wrap( ~ `Product Type`)+
+  stat_summary(fun = median, geom = "crossbar", width = .75, color = "#a9ad00", size = .4)
+```
+
+The different products have different days where open rate is highest. For all products, Friday has the highest open rate. Only two of the five products, however, have their highest open rate on a Friday. In general, though, most products have a similar distribution. Below is a table showing the best day to send each product.
+
+| Product Type                    | Maximize Open Rate | Maximize Click Rate |
+|---------------------------------|--------------------|---------------------|
+| Donor-Centric Postcard          | Friday             | Friday              |
+| Donor-Centric Target Mailer     | Tuesday            | Thursday            |
+| Visions                         | Monday             | Monday              |
+| Donor-Centric Newsletter        | Monday             | Tuesday             |
+| Professional Advisor Newsletter | Friday             | Friday              |
+
 ## Professional Advisor Newsletter
 
 A specific product some nonprofits like to offer a Professional Advisor newsletter. These are essentially tips and tricks for charitable giving officers and people involved in the field. They do not get sent to donors. Below is a table comparing Professional Advisor newsletters to the rest of the email campaigns.
@@ -953,69 +990,8 @@ chisqT <- chisq.test(techs)
 
 These results seem incredibly different, and statistical testing confirms it. Professional Advisor Newsletters are statistically significantly different from all other product types. They have a significantly lower open rate, but a significantly higher click rate.
 
-### Day of the Week
 
-Because the audience is centered of mostly professionals, do the best days of the week to send emails change?
-
-```{r warning = F, message = F}
-techniques %>%
-  ggplot(aes(Day, `Open Rate`, fill = Day))+
-  geom_boxplot(fill = c('#003a5d', '#0091b3', '#003a5d', '#0091b3', '#003a5d'))+
-  theme_ipsum(axis_title_size = 12)+
-  labs(title = 'Open Rate by Day of the Week for Professional Advisor Newsletter Emails')+
-  theme(legend.position="none")+
-  stat_summary(fun = median, geom = "crossbar", width = .75, color = "#a9ad00", size = .4)+
-  stat_summary(fun = median, geom = "text", aes(label = paste0(round(..y.., 2), "%")), 
-               position = position_dodge(width = 0.75), vjust = -0.5, color = "white")
-
-comparison1 <- emails %>% 
-  group_by(Day, Techniques) %>% 
-  summarise(
-    openRate=round(median(`Open Rate`), digits =4),
-    )
-
-comparison1 <- comparison1 %>%
-  pivot_wider(id_cols = Techniques, names_from = Day, values_from = openRate)
-
-comparison1 <- comparison1[-1,-2]
-
-comparison2 <- emails %>% 
-  group_by(Day) %>% 
-  summarise(
-    openRate=round(median(`Open Rate`), digits =4),
-    )
-
-comparison2 <- comparison2 %>%
-  pivot_wider(names_from = Day, values_from = openRate)
-
-comparison1 <- comparison1[,-1]
-
-comparison1 <- comparison1 %>%
-  mutate(source = 'Techniques')
-
-comparison2 <- comparison2[,-1]
-
-comparison2 <- comparison2 %>%
-  mutate(source = 'all')
-
-comparison <- rbind(comparison1, comparison2)
-
-comparison <- comparison[,-c(6,7)]
-
-chisqC <- chisq.test(comparison)
-#p = 0.8801843
-
-techniqueDayTable2 <- techniques %>%
-  group_by(Day) %>%
-  summarize(
-    `Open Rate` = median(`Open Rate`),
-    `Click Rate` = median(`Click Rate`)
-  )
-```
-
-Friday remains the best day to send, except its lead has grown substantially. The most surprising part of this plot is how far Monday and Tuesday fell. Tuesday through Thursday are all very similar in open rate. The relationship between open rate and day of the week for just Professional Advisor newsletters and the relationship between open rate and day for all products is statistically significantly different. Regardless, sending on Friday no matter the product seems to be the best bet. Friday is also the best day to get clicks, and Thursday is the worst day.
-
-#### COVID-19
+### COVID-19
 
 Professional Advisor newsletter email campaigns are also affected by COVID. Below is a boxplot showing the relationship between open rate and day of the week for Professional Advisor newsletters by COVID.
 
